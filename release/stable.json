@@ -4,26 +4,26 @@
   "channel": "stable",
   "version": "1.4.2.1",
   "forkVersion": "1.4.2.1",
-  "forkDisplayVersion": "1.4.2.1-fork.4",
-  "forkBuildNumber": 4,
+  "forkDisplayVersion": "1.4.2.1-fork.5",
+  "forkBuildNumber": 5,
   "upstreamVersion": "1.4.2",
-  "forkCommit": "2aa50d42c0c331f25c560f4ca0ff1b2ff468f163",
-  "buildNumber": "1.4.2.1-fork.4",
-  "releaseDate": "2026-08-19T18:44:04Z",
+  "forkCommit": "49d306e965eb525123980a502aeefadff9886e20",
+  "buildNumber": "1.4.2.1-fork.5",
+  "releaseDate": "2026-08-19T19:23:31Z",
   "minimumSupportedVersion": "1.4.2.1",
   "mandatory": false,
-  "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.4/DeskBox_Setup_1.4.2.1_x64.exe",
+  "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.5/DeskBox_Setup_1.4.2.1_x64.exe",
   "manualDownloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
   "mirrorUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
-  "sha256": "280EDE523E4521DE842D73451B380EA9F8575450A14C8AF83DAD75A3E4779CE2",
-  "size": 25412838,
-  "releaseNotesUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.4",
+  "sha256": "913D35B19C9A1C89C032B5D664F635F5BC877D8DCFF9D49483C9C8F51F106C28",
+  "size": 25396661,
+  "releaseNotesUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.5",
   "summary": {
-    "vi-VN": "DeskBox 1.4.2.1-fork.4 đã sẵn sàng cập nhật.",
-    "en-US": "DeskBox 1.4.2.1-fork.4 is ready to update."
+    "vi-VN": "DeskBox 1.4.2.1-fork.5 đã sẵn sàng cập nhật.",
+    "en-US": "DeskBox 1.4.2.1-fork.5 is ready to update."
   },
   "releaseNotes": {
-    "vi-VN": "Cập nhật cache thumbnail trên ổ đĩa, chụp nhanh chọn cửa sổ, chuyển Desktop nhanh hơn, box mới sắp xếp theo loại và giảm cache RAM.",
-    "en-US": "Disk thumbnail cache, frozen-window screenshot capture, faster Desktop moves, Type sorting for new boxes, and tighter RAM caches."
+    "vi-VN": "Tối ưu icon theo vùng hiển thị và giảm RAM, cache thumbnail trên ổ đĩa, chụp màn hình chọn cửa sổ hoặc kéo vùng tự do.",
+    "en-US": "Viewport-driven icon loading, lower RAM use, disk thumbnail cache, and frozen screenshot capture for either a window or a free-drawn region."
   }
 }
