@@ -150,6 +150,7 @@ public enum AppUpdateCheckStatus
     UpToDate,
     UpdateAvailable,
     InvalidManifest,
+    NotFound,
     Failed
 }
 

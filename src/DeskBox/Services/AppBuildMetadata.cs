@@ -13,8 +13,8 @@ public static class AppBuildMetadata
 
     public static string UpstreamVersion => Get("DeskBox.UpstreamVersion", "1.4.2");
     public static string ForkVersion => Get("DeskBox.ForkVersion", "1.4.2.1");
-    public static string ForkDisplayVersion => Get("DeskBox.ForkDisplayVersion", $"{ForkVersion} (Fork)");
-    public static int ForkBuildNumber => ParseInt(Get("DeskBox.ForkBuildNumber", "2"), 2);
+    public static string ForkDisplayVersion => Get("DeskBox.ForkDisplayVersion", $"{ForkVersion}-fork.3");
+    public static int ForkBuildNumber => ParseInt(Get("DeskBox.ForkBuildNumber", "3"), 3);
     public static string BuildNumber => Get("DeskBox.BuildNumber", "dev");
     public static string UpstreamCommit => Get("DeskBox.UpstreamCommit", "unknown");
     public static string ForkCommit => Get("DeskBox.ForkCommit", "unknown");

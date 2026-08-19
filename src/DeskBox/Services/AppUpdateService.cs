@@ -78,6 +78,17 @@ public sealed class AppUpdateService : IAppUpdateService
             return SetLastCheckResult(githubResult);
         }
 
+        // A fork may not have published a release or stable manifest yet.
+        // Treat two confirmed 404 responses as "no new version" instead of
+        // showing a misleading update failure. Other errors remain visible.
+        if (manifestResult.Status == AppUpdateCheckStatus.NotFound &&
+            githubResult.Status == AppUpdateCheckStatus.NotFound)
+        {
+            return SetLastCheckResult(new AppUpdateCheckResult(
+                AppUpdateCheckStatus.UpToDate,
+                currentVersion));
+        }
+
         return SetLastCheckResult(manifestResult);
     }
 
@@ -109,6 +120,10 @@ public sealed class AppUpdateService : IAppUpdateService
                 ? new AppUpdateCheckResult(AppUpdateCheckStatus.UpdateAvailable, currentVersion, manifest)
                 : new AppUpdateCheckResult(AppUpdateCheckStatus.UpToDate, currentVersion, manifest);
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return new AppUpdateCheckResult(AppUpdateCheckStatus.NotFound, currentVersion);
+        }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
         {
             return new AppUpdateCheckResult(AppUpdateCheckStatus.Failed, currentVersion, errorMessage: ex.Message);
@@ -137,6 +152,10 @@ public sealed class AppUpdateService : IAppUpdateService
             return IsRemoteManifestNewer(currentVersion, manifest, manifest.Version)
                 ? new AppUpdateCheckResult(AppUpdateCheckStatus.UpdateAvailable, currentVersion, manifest)
                 : new AppUpdateCheckResult(AppUpdateCheckStatus.UpToDate, currentVersion, manifest);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return new AppUpdateCheckResult(AppUpdateCheckStatus.NotFound, currentVersion);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
         {

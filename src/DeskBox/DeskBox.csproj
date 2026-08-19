@@ -10,8 +10,8 @@
          upstream version in assembly metadata for diagnostics and updates. -->
     <DeskBoxUpstreamVersion Condition="'$(DeskBoxUpstreamVersion)' == ''">1.4.2</DeskBoxUpstreamVersion>
     <DeskBoxForkVersion Condition="'$(DeskBoxForkVersion)' == ''">1.4.2.1</DeskBoxForkVersion>
-    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2.1-fork.2</DeskBoxForkDisplayVersion>
-    <DeskBoxForkBuildNumber Condition="'$(DeskBoxForkBuildNumber)' == ''">2</DeskBoxForkBuildNumber>
+    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2.1-fork.3</DeskBoxForkDisplayVersion>
+    <DeskBoxForkBuildNumber Condition="'$(DeskBoxForkBuildNumber)' == ''">3</DeskBoxForkBuildNumber>
     <DeskBoxBuildNumber Condition="'$(DeskBoxBuildNumber)' == ''">dev</DeskBoxBuildNumber>
     <DeskBoxUpstreamCommit Condition="'$(DeskBoxUpstreamCommit)' == ''">unknown</DeskBoxUpstreamCommit>
     <DeskBoxForkCommit Condition="'$(DeskBoxForkCommit)' == ''">unknown</DeskBoxForkCommit>

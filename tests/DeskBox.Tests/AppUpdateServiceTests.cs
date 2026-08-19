@@ -208,6 +208,23 @@ public sealed class AppUpdateServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CheckForUpdatesAsync_WhenManifestAndGitHubReleaseAreMissing_ReturnsUpToDate()
+    {
+        using var httpClient = CreateHttpClient(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+        var service = new AppUpdateService(
+            httpClient,
+            "https://deskbox.fun/update/stable.json",
+            _tempRoot,
+            AppUpdateService.DefaultGitHubLatestReleaseApiUrl);
+
+        var result = await service.CheckForUpdatesAsync("1.4.2.1");
+
+        Assert.Equal(AppUpdateCheckStatus.UpToDate, result.Status);
+        Assert.False(result.IsUpdateAvailable);
+        Assert.Null(result.ErrorMessage);
+    }
+
+    [Fact]
     public async Task CheckForUpdatesAsync_FallsBackToGitHubShaAssetWhenDigestMissing()
     {
         using var httpClient = CreateHttpClient(request =>
