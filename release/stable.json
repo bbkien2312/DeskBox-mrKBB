@@ -1,4 +1,4 @@
-﻿{
+{
     "schemaVersion":  1,
     "updaterProtocolVersion":  1,
     "channel":  "stable",
@@ -7,9 +7,9 @@
     "forkDisplayVersion":  "1.4.2.1-fork.3",
     "forkBuildNumber":  3,
     "upstreamVersion":  "1.4.2",
-    "forkCommit":  "1c3307cca4bc686fcbf3e0d914cf2deeb6f24fa4",
+    "forkCommit":  "d793051dd42e8f13725cb65f1059b58338db55ab",
     "buildNumber":  "1.4.2.1-fork.3",
-    "releaseDate":  "2026-08-19T16:37:12Z",
+    "releaseDate":  "2026-08-19T16:38:51Z",
     "minimumSupportedVersion":  "1.4.2.1",
     "mandatory":  false,
     "downloadUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.3/DeskBox_Setup_1.4.2.1_x64.exe",
@@ -19,11 +19,11 @@
     "size":  25406130,
     "releaseNotesUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.3",
     "summary":  {
-                    "vi-VN":  "DeskBox 1.4.2.1-fork.3 Ä‘Ã£ sáºµn sÃ ng cáº­p nháº­t.",
+                    "vi-VN":  "DeskBox 1.4.2.1-fork.3 đã sẵn sàng cập nhật.",
                     "en-US":  "DeskBox 1.4.2.1-fork.3 is ready to update."
                 },
     "releaseNotes":  {
-                         "vi-VN":  "Cáº­p nháº­t fork build 3 vá»›i cÆ¡ cháº¿ updater dÃ¹ng chung.",
+                         "vi-VN":  "Cập nhật fork build 3 với cơ chế updater dùng chung.",
                          "en-US":  "Fork build 3 with the shared updater protocol."
                      }
 }
