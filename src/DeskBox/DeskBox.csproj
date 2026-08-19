@@ -10,7 +10,8 @@
          upstream version in assembly metadata for diagnostics and updates. -->
     <DeskBoxUpstreamVersion Condition="'$(DeskBoxUpstreamVersion)' == ''">1.4.2</DeskBoxUpstreamVersion>
     <DeskBoxForkVersion Condition="'$(DeskBoxForkVersion)' == ''">1.4.2.1</DeskBoxForkVersion>
-    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2-fork.1</DeskBoxForkDisplayVersion>
+    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2.1-fork.2</DeskBoxForkDisplayVersion>
+    <DeskBoxForkBuildNumber Condition="'$(DeskBoxForkBuildNumber)' == ''">2</DeskBoxForkBuildNumber>
     <DeskBoxBuildNumber Condition="'$(DeskBoxBuildNumber)' == ''">dev</DeskBoxBuildNumber>
     <DeskBoxUpstreamCommit Condition="'$(DeskBoxUpstreamCommit)' == ''">unknown</DeskBoxUpstreamCommit>
     <DeskBoxForkCommit Condition="'$(DeskBoxForkCommit)' == ''">unknown</DeskBoxForkCommit>
@@ -58,6 +59,7 @@
     <AssemblyMetadata Include="DeskBox.UpstreamVersion" Value="$(DeskBoxUpstreamVersion)" />
     <AssemblyMetadata Include="DeskBox.ForkVersion" Value="$(DeskBoxForkVersion)" />
     <AssemblyMetadata Include="DeskBox.ForkDisplayVersion" Value="$(DeskBoxForkDisplayVersion)" />
+    <AssemblyMetadata Include="DeskBox.ForkBuildNumber" Value="$(DeskBoxForkBuildNumber)" />
     <AssemblyMetadata Include="DeskBox.BuildNumber" Value="$(DeskBoxBuildNumber)" />
     <AssemblyMetadata Include="DeskBox.UpstreamCommit" Value="$(DeskBoxUpstreamCommit)" />
     <AssemblyMetadata Include="DeskBox.ForkCommit" Value="$(DeskBoxForkCommit)" />

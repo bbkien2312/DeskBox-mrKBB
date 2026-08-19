@@ -12,6 +12,7 @@ public sealed class AppUpdateManifest
     /// </summary>
     public string ForkVersion { get; set; } = string.Empty;
     public string ForkDisplayVersion { get; set; } = string.Empty;
+    public int ForkBuildNumber { get; set; }
     public string UpstreamVersion { get; set; } = string.Empty;
     public string UpstreamCommit { get; set; } = string.Empty;
     public string ForkCommit { get; set; } = string.Empty;

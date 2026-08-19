@@ -11,6 +11,7 @@ public sealed class ForkBuildMetadataTests
         Assert.False(string.IsNullOrWhiteSpace(AppBuildMetadata.ForkVersion));
         Assert.False(string.IsNullOrWhiteSpace(AppBuildMetadata.UpstreamVersion));
         Assert.False(string.IsNullOrWhiteSpace(AppBuildMetadata.ForkDisplayVersion));
+        Assert.True(AppBuildMetadata.ForkBuildNumber > 0);
         Assert.Contains("Fork", AppBuildMetadata.ForkDisplayVersion, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -27,16 +28,18 @@ public sealed class ForkBuildMetadataTests
     {
         var manifest = new AppUpdateManifest
         {
-            Version = "1.4.2.2",
-            ForkVersion = "1.4.2.2",
-            ForkDisplayVersion = "1.4.2-fork.2",
+            Version = "1.4.2.1",
+            ForkVersion = "1.4.2.1",
+            ForkDisplayVersion = "1.4.2.1-fork.2",
+            ForkBuildNumber = 2,
             UpstreamVersion = "1.4.2",
             UpstreamCommit = "upstream-sha",
             ForkCommit = "fork-sha",
-            BuildNumber = "20260819.2"
+            BuildNumber = "20260819.5"
         };
 
-        Assert.Equal("1.4.2.2", AppUpdateService.GetComparableManifestVersion(manifest));
+        Assert.Equal("1.4.2.1", AppUpdateService.GetComparableManifestVersion(manifest));
+        Assert.Equal(2, manifest.ForkBuildNumber);
         Assert.Equal("1.4.2", manifest.UpstreamVersion);
         Assert.Equal("fork-sha", manifest.ForkCommit);
     }

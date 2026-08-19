@@ -105,7 +105,7 @@ public sealed class AppUpdateService : IAppUpdateService
             }
 
             string remoteVersion = GetComparableManifestVersion(manifest);
-            return IsRemoteVersionNewer(currentVersion, remoteVersion)
+            return IsRemoteManifestNewer(currentVersion, manifest, remoteVersion)
                 ? new AppUpdateCheckResult(AppUpdateCheckStatus.UpdateAvailable, currentVersion, manifest)
                 : new AppUpdateCheckResult(AppUpdateCheckStatus.UpToDate, currentVersion, manifest);
         }
@@ -134,7 +134,7 @@ public sealed class AppUpdateService : IAppUpdateService
                     "The GitHub release metadata is missing required fields.");
             }
 
-            return IsRemoteVersionNewer(currentVersion, manifest.Version)
+            return IsRemoteManifestNewer(currentVersion, manifest, manifest.Version)
                 ? new AppUpdateCheckResult(AppUpdateCheckStatus.UpdateAvailable, currentVersion, manifest)
                 : new AppUpdateCheckResult(AppUpdateCheckStatus.UpToDate, currentVersion, manifest);
         }
@@ -408,6 +408,28 @@ public sealed class AppUpdateService : IAppUpdateService
         return remote > current;
     }
 
+    internal static bool IsRemoteManifestNewer(
+        string currentVersion,
+        AppUpdateManifest manifest,
+        string comparableVersion)
+    {
+        if (IsRemoteVersionNewer(currentVersion, comparableVersion))
+        {
+            return true;
+        }
+
+        if (manifest.ForkBuildNumber <= 0 ||
+            AppBuildMetadata.ForkBuildNumber <= 0 ||
+            !TryParseVersion(currentVersion, out Version currentBase) ||
+            !TryParseVersion(manifest.ForkVersion, out Version remoteBase) ||
+            !currentBase.Equals(remoteBase))
+        {
+            return false;
+        }
+
+        return manifest.ForkBuildNumber > AppBuildMetadata.ForkBuildNumber;
+    }
+
     public static bool TryParseVersion(string? value, out Version version)
     {
         version = new Version(0, 0, 0);
@@ -515,6 +537,7 @@ public sealed class AppUpdateService : IAppUpdateService
             Version = version,
             ForkVersion = version,
             ForkDisplayVersion = $"{version} (Fork)",
+            ForkBuildNumber = ParseForkBuildNumber(release.TagName),
             UpstreamVersion = AppBuildMetadata.UpstreamVersion,
             DownloadUrl = installerAsset.BrowserDownloadUrl,
             ManualDownloadUrl = DefaultManualDownloadUrl,
@@ -543,6 +566,23 @@ public sealed class AppUpdateService : IAppUpdateService
                 ["ru-RU"] = $"DeskBox {version} доступен в GitHub Releases."
             }
         };
+    }
+
+    private static int ParseForkBuildNumber(string? tagName)
+    {
+        if (string.IsNullOrWhiteSpace(tagName))
+        {
+            return 0;
+        }
+
+        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(
+            tagName,
+            @"(?:fork|build)[-.]?(?<number>\d+)$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return match.Success &&
+               int.TryParse(match.Groups["number"].Value, out int number)
+            ? number
+            : 0;
     }
 
     private async Task<string> DownloadSha256FromAssetAsync(GitHubReleaseAsset? shaAsset, CancellationToken cancellationToken)
