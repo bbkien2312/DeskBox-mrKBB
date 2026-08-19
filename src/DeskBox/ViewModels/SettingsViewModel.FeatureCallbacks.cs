@@ -28,7 +28,7 @@ public partial class SettingsViewModel
         {
             ApplyQuickCaptureRecordingState(clipboardEnabled: false, imageEnabled: false);
             _settingsService.SaveDebounced();
-            App.Current?.QuickCaptureClipboardService?.Refresh();
+            App.Current?.EnsureQuickCaptureClipboardService()?.Refresh();
         }
 
         _ = SyncQuickCaptureEnabledAsync(value);
@@ -117,7 +117,7 @@ public partial class SettingsViewModel
         }
         finally
         {
-            App.Current?.QuickCaptureClipboardService?.Refresh();
+            App.Current?.EnsureQuickCaptureClipboardService()?.Refresh();
             OnPropertyChanged(nameof(FeatureWidgetEntries));
             RefreshQuickCaptureClipboardDiagnostics();
         }
@@ -376,10 +376,10 @@ public partial class SettingsViewModel
         }
 
         _settingsService.SaveDebounced();
-        App.Current?.QuickCaptureClipboardService?.Refresh();
+        App.Current?.EnsureQuickCaptureClipboardService()?.Refresh();
         if (value)
         {
-            App.Current?.QuickCaptureClipboardService?.CaptureCurrent();
+            App.Current?.EnsureQuickCaptureClipboardService()?.CaptureCurrent();
         }
 
         RefreshQuickCaptureClipboardDiagnostics();
@@ -415,11 +415,11 @@ public partial class SettingsViewModel
         }
 
         _settingsService.SaveDebounced();
-        App.Current?.QuickCaptureClipboardService?.Refresh();
+        App.Current?.EnsureQuickCaptureClipboardService()?.Refresh();
         RefreshQuickCaptureClipboardDiagnostics();
         if (value)
         {
-            App.Current?.QuickCaptureClipboardService?.CaptureCurrent();
+            App.Current?.EnsureQuickCaptureClipboardService()?.CaptureCurrent();
         }
     }
 

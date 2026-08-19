@@ -12,8 +12,8 @@ public static class QuickCaptureClipboardActivationHelper
         FeatureWidgetSettings.SetEnabled(settingsService.Settings, WidgetKind.QuickCapture, true);
         settingsService.Settings.QuickCaptureClipboardEnabled = true;
         await settingsService.SaveAsync();
-        App.Current.QuickCaptureClipboardService?.Refresh();
-        App.Current.QuickCaptureClipboardService?.CaptureCurrent();
+        App.Current.EnsureQuickCaptureClipboardService()?.Refresh();
+        App.Current.EnsureQuickCaptureClipboardService()?.CaptureCurrent();
         App.Log("[QuickCaptureClipboard] Enabled");
         return true;
     }

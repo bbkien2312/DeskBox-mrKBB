@@ -2060,6 +2060,7 @@
   "Onboarding.Organization.ScanFailedTitle": "لا يمكن فحص سطح المكتب",
   "DesktopOrganization.Notification.Title": "يتم تنظيم الملف تلقائيًا",
   "DesktopOrganization.Notification.Body": "تم نقل \"{0}\" إلى \"{1}\".",
+  "DesktopOrganization.Notification.BatchBody": "تم تنظيم {0} عناصر تلقائيًا: {1}",
   "DesktopOrganization.Notification.Undo": "تراجع",
   "DesktopOrganization.Undo.Title": "التراجع عن أحدث منظمة",
   "DesktopOrganization.Undo.Empty": "لا يوجد أي نقل للملف للتراجع عنه.",

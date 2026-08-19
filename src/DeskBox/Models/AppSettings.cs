@@ -685,6 +685,16 @@ public class AppSettings
     /// </summary>
     public int SearchHotkeyKey { get; set; } = 0x44;
 
+    /// <summary>Whether the lightweight screen/window capture hotkey is enabled.</summary>
+    public bool ScreenshotHotkeyEnabled { get; set; } = true;
+
+    /// <summary>Screenshot hotkey modifier bit flags. Default: Ctrl+Alt.</summary>
+    public int ScreenshotHotkeyModifiers { get; set; } =
+        (int)(HotkeyModifierKeys.Control | HotkeyModifierKeys.Alt);
+
+    /// <summary>Screenshot hotkey virtual key. Default: S.</summary>
+    public int ScreenshotHotkeyKey { get; set; } = 0x53;
+
     /// <summary>
     /// Search popup display mode. Valid values: "Spotlight", "Home", "Palette".
     /// </summary>

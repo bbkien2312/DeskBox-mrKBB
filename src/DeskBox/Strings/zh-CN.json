@@ -2060,6 +2060,7 @@
     "Onboarding.Organization.ScanFailedTitle": "无法扫描桌面",
     "DesktopOrganization.Notification.Title": "已自动整理",
     "DesktopOrganization.Notification.Body": "“{0}”已移动到“{1}”。",
+    "DesktopOrganization.Notification.BatchBody": "已自动整理 {0} 个项目：{1}",
     "DesktopOrganization.Notification.Undo": "撤销",
     "DesktopOrganization.Undo.Title": "撤销最近一次整理",
     "DesktopOrganization.Undo.Empty": "当前没有可撤销的文件移动。",

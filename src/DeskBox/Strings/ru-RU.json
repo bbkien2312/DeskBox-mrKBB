@@ -2060,6 +2060,7 @@
   "Onboarding.Organization.ScanFailedTitle": "Не удалось просканировать рабочий стол",
   "DesktopOrganization.Notification.Title": "Файл организован автоматически",
   "DesktopOrganization.Notification.Body": "«{0}» был перемещен в «{1}».",
+  "DesktopOrganization.Notification.BatchBody": "Автоматически организовано элементов: {0}: {1}",
   "DesktopOrganization.Notification.Undo": "Отменить",
   "DesktopOrganization.Undo.Title": "Отменить последнюю организацию",
   "DesktopOrganization.Undo.Empty": "Нет перемещений файлов, которые можно было бы отменить.",

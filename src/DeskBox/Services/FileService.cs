@@ -274,9 +274,7 @@ public sealed partial class FileService
             string name = Path.GetFileName(normalizedPath);
             System.IO.FileAttributes attributes = File.GetAttributes(normalizedPath);
             if (name.Equals("desktop.ini", StringComparison.OrdinalIgnoreCase) ||
-                (attributes & System.IO.FileAttributes.Hidden) != 0 ||
-                (Path.GetExtension(normalizedPath).Equals(".url", StringComparison.OrdinalIgnoreCase) &&
-                 IsDeadSteamShortcut(normalizedPath)))
+                (attributes & System.IO.FileAttributes.Hidden) != 0)
             {
                 return FolderEntryRefreshStatus.Filtered;
             }
@@ -506,13 +504,6 @@ public sealed partial class FileService
     private static FileSystemEntrySnapshot? TryCreateEntrySnapshot(string path, bool loadFolderItemCount)
     {
         if (!ShouldDisplayEntry(path))
-        {
-            return null;
-        }
-
-        // Filter out dead Steam game shortcuts (game uninstalled but .url remains).
-        if (Path.GetExtension(path).Equals(".url", StringComparison.OrdinalIgnoreCase) &&
-            IsDeadSteamShortcut(path))
         {
             return null;
         }
@@ -1015,6 +1006,19 @@ public sealed partial class FileService
             return plannedOperations;
         }, cancellationToken);
 
+        // Prefer the native Windows shell batch for ordinary move operations.
+        // This must run before the managed progress path: the manual drag/drop
+        // caller supplies both progress and cancellation, and the old ordering
+        // silently forced every cross-volume move through our slower 256 KB
+        // copy/delete loop. IFileOperation still gives Windows its native
+        // batching and progress UI; cancellation is handled by the shell.
+        if (move && useShellProgress)
+        {
+            return await ExecuteShellMovePlanAsync(
+                operations,
+                ownerWindowHandle);
+        }
+
         if (progress is not null || cancellationToken.CanBeCanceled)
         {
             // Keep synchronous filesystem probes, partial-file cleanup and
@@ -1027,13 +1031,6 @@ public sealed partial class FileService
                     progress,
                     cancellationToken),
                 CancellationToken.None);
-        }
-
-        if (move && useShellProgress)
-        {
-            return await ExecuteShellMovePlanAsync(
-                operations,
-                ownerWindowHandle);
         }
 
         if (move && operations.Any(operation => !CanUseAtomicMove(

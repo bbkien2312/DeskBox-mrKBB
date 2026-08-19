@@ -2006,6 +2006,7 @@
     "Onboarding.Organization.ScanFailedTitle": "Não foi possível examinar a área de trabalho",
     "DesktopOrganization.Notification.Title": "Arquivo organizado automaticamente",
     "DesktopOrganization.Notification.Body": "“{0}” foi movido para “{1}”.",
+    "DesktopOrganization.Notification.BatchBody": "{0} itens organizados automaticamente: {1}",
     "DesktopOrganization.Notification.Undo": "Desfazer",
     "DesktopOrganization.Undo.Title": "Desfazer a organização mais recente",
     "DesktopOrganization.Undo.Empty": "Não há movimentações de arquivos para desfazer.",

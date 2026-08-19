@@ -2060,6 +2060,7 @@
   "Onboarding.Organization.ScanFailedTitle": "डेस्कटॉप को स्कैन नहीं किया जा सका",
   "DesktopOrganization.Notification.Title": "फ़ाइल स्वचालित रूप से व्यवस्थित हुई",
   "DesktopOrganization.Notification.Body": "\"{0}\" को \"{1}\" में ले जाया गया।",
+  "DesktopOrganization.Notification.BatchBody": "{0} आइटम अपने आप व्यवस्थित किए गए: {1}",
   "DesktopOrganization.Notification.Undo": "पूर्ववत करें",
   "DesktopOrganization.Undo.Title": "नवीनतम संगठन को पूर्ववत करें",
   "DesktopOrganization.Undo.Empty": "पूर्ववत करने के लिए कोई फ़ाइल स्थानांतरित नहीं की गई है।",

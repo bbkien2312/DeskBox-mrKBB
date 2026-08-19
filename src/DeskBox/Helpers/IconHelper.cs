@@ -11,12 +11,17 @@ namespace DeskBox.Helpers;
 /// </summary>
 public static class IconHelper
 {
-    private const int MaxIconCacheEntries = 200;
-    private const long MaxIconCacheBytes = 32L * 1024 * 1024;
-    private const int MaxDecodedBitmapCacheEntries = 160;
-    private const long MaxDecodedBitmapCacheBytes = 48L * 1024 * 1024;
-    private const int MaxThumbnailCacheEntries = 128;
-    private const long MaxThumbnailCacheBytes = 32L * 1024 * 1024;
+    // Keep thumbnails enabled, but cap the resident process caches more
+    // tightly. The visible WidgetItem keeps its current BitmapImage alive, so
+    // evicting an inactive cache entry does not make the displayed thumbnail
+    // disappear; it only prevents repeated background refreshes from growing
+    // the global cache indefinitely.
+    private const int MaxIconCacheEntries = 120;
+    private const long MaxIconCacheBytes = 16L * 1024 * 1024;
+    private const int MaxDecodedBitmapCacheEntries = 96;
+    private const long MaxDecodedBitmapCacheBytes = 24L * 1024 * 1024;
+    private const int MaxThumbnailCacheEntries = 64;
+    private const long MaxThumbnailCacheBytes = 16L * 1024 * 1024;
     private const string SharedCacheScope = "shared";
 
     // Icon bytes cache: path → PNG bytes (for shell icons, not image thumbnails)

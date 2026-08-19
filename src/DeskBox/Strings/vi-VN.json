@@ -2061,6 +2061,7 @@
     "Onboarding.Organization.ScanFailedTitle": "Không thể quét Desktop",
     "DesktopOrganization.Notification.Title": "Đã tự động sắp xếp mục",
     "DesktopOrganization.Notification.Body": "“{0}” đã được chuyển vào “{1}”.",
+    "DesktopOrganization.Notification.BatchBody": "Đã tự động sắp xếp {0} mục: {1}",
     "DesktopOrganization.Notification.Undo": "Hoàn tác",
     "DesktopOrganization.Undo.Title": "Hoàn tác lượt sắp xếp gần nhất",
     "DesktopOrganization.Undo.Empty": "Không có lượt di chuyển tệp nào để hoàn tác.",

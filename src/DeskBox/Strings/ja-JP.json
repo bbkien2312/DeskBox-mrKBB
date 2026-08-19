@@ -2006,6 +2006,7 @@
     "Onboarding.Organization.ScanFailedTitle": "デスクトップをスキャンできませんでした",
     "DesktopOrganization.Notification.Title": "ファイルを自動整理しました",
     "DesktopOrganization.Notification.Body": "「{0}」を「{1}」へ移動しました。",
+    "DesktopOrganization.Notification.BatchBody": "{0} 件を自動整理しました: {1}",
     "DesktopOrganization.Notification.Undo": "元に戻す",
     "DesktopOrganization.Undo.Title": "最新の整理を元に戻す",
     "DesktopOrganization.Undo.Empty": "元に戻せるファイル移動はありません。",

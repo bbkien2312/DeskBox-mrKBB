@@ -2060,6 +2060,7 @@
   "Onboarding.Organization.ScanFailedTitle": "Impossible d'analyser le bureau",
   "DesktopOrganization.Notification.Title": "Fichier organisé automatiquement",
   "DesktopOrganization.Notification.Body": "« {0} » a été déplacé vers « {1} ».",
+  "DesktopOrganization.Notification.BatchBody": "{0} éléments organisés automatiquement : {1}",
   "DesktopOrganization.Notification.Undo": "Annuler",
   "DesktopOrganization.Undo.Title": "Annuler la dernière organisation",
   "DesktopOrganization.Undo.Empty": "Il n'y a aucun déplacement de fichier à annuler.",

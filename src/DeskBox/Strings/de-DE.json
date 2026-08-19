@@ -2006,6 +2006,7 @@
     "Onboarding.Organization.ScanFailedTitle": "Desktop konnte nicht gescannt werden",
     "DesktopOrganization.Notification.Title": "Datei automatisch organisiert",
     "DesktopOrganization.Notification.Body": "„{0}“ wurde nach „{1}“ verschoben.",
+    "DesktopOrganization.Notification.BatchBody": "{0} Elemente automatisch organisiert: {1}",
     "DesktopOrganization.Notification.Undo": "Rückgängig",
     "DesktopOrganization.Undo.Title": "Letzte Organisation rückgängig machen",
     "DesktopOrganization.Undo.Empty": "Es gibt keine Dateiverschiebungen zum Rückgängigmachen.",

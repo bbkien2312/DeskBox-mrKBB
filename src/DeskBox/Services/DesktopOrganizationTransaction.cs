@@ -73,33 +73,55 @@ public sealed class DesktopOrganizationTransaction
                 int totalCount = journal.Items.Count;
                 int completedCount = 0;
 
-                for (int index = 0; index < journal.Items.Count; index++)
+                // Submit one native batch per destination widget. The old
+                // implementation called the transfer layer once per item,
+                // which multiplied shell/volume probes and made a large
+                // organize operation feel sluggish.
+                foreach (var targetGroup in journal.Items
+                             .Where(item => !item.Completed)
+                             .GroupBy(item => item.TargetWidgetId, StringComparer.Ordinal))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    DesktopOrganizationRecoveryItem journalItem = journal.Items[index];
-                    var result = await _fileService.ExecuteTransferPlanAsync(
-                        [new FileService.FileTransferPlan(
-                            journalItem.SourcePath,
-                            journalItem.DestinationPath)],
-                        move: true,
-                        useShellProgress: false);
-                    completedMoves.Add(result.Single());
-                    journalItem.Completed = true;
-                    await _recoveryStore.SaveAsync(journal);
-                    completedCount++;
-                    _log.Ok(
-                        "MoveCompleted",
-                        $"{completedCount}/{journal.Items.Count}; source={journalItem.SourcePath}; destination={journalItem.DestinationPath}");
-                    DesktopOrganizationTargetPlan? progressTarget = plan.Targets.FirstOrDefault(
-                        target => string.Equals(
-                            target.TargetWidgetId,
+                    DesktopOrganizationRecoveryItem[] groupItems = targetGroup.ToArray();
+                    var plans = groupItems
+                        .Select(item => new FileService.FileTransferPlan(
+                            item.SourcePath,
+                            item.DestinationPath))
+                        .ToArray();
+                    IReadOnlyList<FileService.FileTransferResult> results =
+                        await _fileService.ExecuteTransferPlanAsync(
+                            plans,
+                            move: true,
+                            useShellProgress: true);
+                    completedMoves.AddRange(results);
+                    if (results.Count != groupItems.Length)
+                    {
+                        throw new IOException(
+                            $"Native move batch completed {results.Count}/{groupItems.Length} items.");
+                    }
+
+                    foreach (DesktopOrganizationRecoveryItem journalItem in groupItems)
+                    {
+                        journalItem.Completed = true;
+                        completedCount++;
+                        _log.Ok(
+                            "MoveCompleted",
+                            $"{completedCount}/{journal.Items.Count}; source={journalItem.SourcePath}; destination={journalItem.DestinationPath}");
+                        DesktopOrganizationTargetPlan? progressTarget = plan.Targets.FirstOrDefault(
+                            target => string.Equals(
+                                target.TargetWidgetId,
+                                journalItem.TargetWidgetId,
+                                StringComparison.Ordinal));
+                        progress?.Report(new DesktopOrganizationProgress(
+                            completedCount,
+                            totalCount,
                             journalItem.TargetWidgetId,
-                            StringComparison.Ordinal));
-                    progress?.Report(new DesktopOrganizationProgress(
-                        completedCount,
-                        totalCount,
-                        journalItem.TargetWidgetId,
-                        progressTarget?.SuggestedDisplayName ?? string.Empty));
+                            progressTarget?.SuggestedDisplayName ?? string.Empty));
+                    }
+
+                    // One checkpoint per native batch keeps recovery safe while
+                    // avoiding a disk write for every individual item.
+                    await _recoveryStore.SaveAsync(journal);
                 }
 
                 AddRulesForNewTargets(plan, settings.DesktopOrganizationRules);

@@ -98,6 +98,7 @@ public partial class App : Application
     internal event Action<bool>? OnboardingWidgetsVisibilityChanged;
     private NativeAppNotificationService? _nativeNotificationService;
     private TodoReminderService? _todoReminderService;
+    private DesktopOrganizationNotificationCoalescer? _desktopOrganizationNotificationCoalescer;
     private DisplayAreaWatcherService? _displayAreaWatcher;
     private DisplayTopologyTransitionCoordinator? _displayTopologyTransitionCoordinator;
     private AppLifecycleRecoveryWatcher? _lifecycleRecoveryWatcher;
@@ -106,6 +107,8 @@ public partial class App : Application
     private UsnJournalIndexService? _usnIndexService;
     private FileMetaService? _fileMetaService;
     private SearchHotkeyService? _searchHotkeyService;
+    private ScreenshotHotkeyService? _screenshotHotkeyService;
+    private ScreenshotCaptureWindow? _screenshotCaptureWindow;
     private SearchPopupWindow? _searchPopupWindow;
     private SearchPopupWindow? _searchPopupClosingForIdleCleanup;
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _searchPopupIdleTimer;
@@ -146,9 +149,24 @@ public partial class App : Application
     public IAppUpdateService AppUpdateService { get; private set; } = null!;
     public QuickCaptureService QuickCaptureService { get; private set; } = null!;
     public QuickCaptureClipboardService? QuickCaptureClipboardService { get; private set; }
+
+    public QuickCaptureClipboardService? EnsureQuickCaptureClipboardService()
+    {
+        if (QuickCaptureClipboardService is null &&
+            (SettingsService.Settings.QuickCaptureEnabled ||
+             SettingsService.Settings.QuickCaptureClipboardEnabled))
+        {
+            QuickCaptureClipboardService = new QuickCaptureClipboardService(
+                SettingsService,
+                QuickCaptureService);
+        }
+
+        return QuickCaptureClipboardService;
+    }
     public LocalizationService LocalizationService { get; private set; } = null!;
     public ThemeService ThemeService { get; private set; } = null!;
     public GlobalHotkeyService? GlobalHotkeyService { get; private set; }
+    public ScreenshotHotkeyService? ScreenshotHotkeyService => _screenshotHotkeyService;
     public SearchHotkeyService? SearchHotkeyService => _searchHotkeyService;
     public SearchEngineService? SearchEngineService => _searchEngineService;
     public SearchIndexService? SearchIndexService => _searchIndexService;
@@ -904,8 +922,14 @@ public partial class App : Application
 
             // Parallel: theme refresh only. Clipboard event subscription must stay on the UI thread.
             var themeTask = Task.Run(() => themeService.RefreshAppearance());
-            QuickCaptureClipboardService = new QuickCaptureClipboardService(SettingsService, quickCaptureService);
-            QuickCaptureClipboardService.Refresh();
+            // Clipboard monitoring is opt-in and belongs to Quick Capture. Do
+            // not subscribe to Windows clipboard events for users who keep
+            // that feature disabled.
+            if (SettingsService.Settings.QuickCaptureEnabled &&
+                SettingsService.Settings.QuickCaptureClipboardEnabled)
+            {
+                EnsureQuickCaptureClipboardService()?.Refresh();
+            }
 
             // Parallel: independent UI setup
             CreateTrayIcon();
@@ -942,6 +966,25 @@ public partial class App : Application
                     Log($"[Init] GlobalHotkeyService late-attach failed: {ex}");
                 }
             }
+
+            _screenshotHotkeyService ??= new ScreenshotHotkeyService(
+                SettingsService,
+                StartScreenshotCaptureAsync);
+            if (_trayWindow is not null)
+            {
+                try
+                {
+                    IntPtr trayHwnd = WindowNative.GetWindowHandle(_trayWindow);
+                    if (trayHwnd != IntPtr.Zero)
+                    {
+                        _screenshotHotkeyService.Attach(trayHwnd);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"[ScreenshotHotkey] Attach failed: {ex}");
+                }
+            }
             WidgetManager = new WidgetManager(SettingsService, FileService, OrganizerService, themeService, quickCaptureService, localizationService);
             WidgetManager.TrayLayerStateChanged += UpdateTrayLayerStateText;
             _displayTopologyTransitionCoordinator = new DisplayTopologyTransitionCoordinator(
@@ -962,7 +1005,11 @@ public partial class App : Application
             WidgetManager.SyncStorageFolderEntries();
             await WidgetManager.RestoreWidgetsAsync();
 
-            StartTodoReminderService();
+            if (FeatureWidgetSettings.IsEnabled(SettingsService.Settings, WidgetKind.Todo) &&
+                SettingsService.Settings.TodoReminderEnabled)
+            {
+                StartTodoReminderService();
+            }
             StartNativeNotificationService();
             ShowDataRestoreResultNotification(restoreResult);
             ShowSettingsLoadRecoveryNotification();
@@ -979,7 +1026,11 @@ public partial class App : Application
                 SettingsService,
                 OrganizerService,
                 WidgetManager);
-            DesktopAutoOrganizationWatcher.ItemOrganized += ShowDesktopAutoOrganizationNotification;
+            _desktopOrganizationNotificationCoalescer =
+                new DesktopOrganizationNotificationCoalescer(
+                    ShowDesktopAutoOrganizationNotifications);
+            DesktopAutoOrganizationWatcher.ItemOrganized +=
+                _desktopOrganizationNotificationCoalescer.Enqueue;
             DesktopAutoOrganizationWatcher.Start();
             if (SettingsService.Settings.ReorganizeManagedContentsOnStartup)
             {
@@ -1262,37 +1313,58 @@ public partial class App : Application
         }
     }
 
-    private void ShowDesktopAutoOrganizationNotification(
-        DesktopAutoOrganizationCompleted completed)
+    private void ShowDesktopAutoOrganizationNotifications(
+        IReadOnlyList<DesktopAutoOrganizationCompleted> completedItems)
     {
-        if (UiDispatcherQueue is { HasThreadAccess: false } dispatcherQueue)
+        if (completedItems.Count == 0)
         {
-            dispatcherQueue.TryEnqueue(() =>
-                ShowDesktopAutoOrganizationNotification(completed));
             return;
         }
 
-        _nativeNotificationService?.TryShow(
-            LocalizationService.T("DesktopOrganization.Notification.Title"),
-            LocalizationService.Format(
+        if (UiDispatcherQueue is { HasThreadAccess: false } dispatcherQueue)
+        {
+            dispatcherQueue.TryEnqueue(() =>
+                ShowDesktopAutoOrganizationNotifications(completedItems));
+            return;
+        }
+
+        DesktopAutoOrganizationCompleted? single =
+            completedItems.Count == 1 ? completedItems[0] : null;
+        string body = single is not null
+            ? LocalizationService.Format(
                 "DesktopOrganization.Notification.Body",
-                completed.FileName,
-                completed.TargetWidgetName),
-            new Dictionary<string, string>
+                single.FileName,
+                single.TargetWidgetName)
+            : LocalizationService.Format(
+                "DesktopOrganization.Notification.BatchBody",
+                completedItems.Count,
+                string.Join(", ", completedItems
+                    .Take(5)
+                    .Select(item => item.FileName)));
+
+        var actions = single is null
+            ? Array.Empty<NativeAppNotificationAction>()
+            : new[]
             {
-                ["type"] = "desktop-organization",
-                ["historyId"] = completed.HistoryId
-            },
-            [
                 new NativeAppNotificationAction(
                     LocalizationService.T("DesktopOrganization.Notification.Undo"),
                     new Dictionary<string, string>
                     {
                         ["type"] = "desktop-organization",
                         ["action"] = "undo",
-                        ["historyId"] = completed.HistoryId
+                        ["historyId"] = single.HistoryId
                     })
-            ],
+            };
+
+        _nativeNotificationService?.TryShow(
+            LocalizationService.T("DesktopOrganization.Notification.Title"),
+            body,
+            new Dictionary<string, string>
+            {
+                ["type"] = "desktop-organization",
+                ["historyId"] = single?.HistoryId ?? string.Empty
+            },
+            actions,
             options: new NativeAppNotificationOptions(
                 Tag: "desktop-auto-organization",
                 Group: "desktop-organization"));
@@ -2901,6 +2973,35 @@ public partial class App : Application
             restoreManagedContents: SettingsService.Settings.RestoreManagedContentsOnExit);
     }
 
+    private Task StartScreenshotCaptureAsync()
+    {
+        if (_screenshotCaptureWindow is not null)
+        {
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            var window = new ScreenshotCaptureWindow();
+            _screenshotCaptureWindow = window;
+            window.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_screenshotCaptureWindow, window))
+                {
+                    _screenshotCaptureWindow = null;
+                }
+            };
+            window.Activate();
+        }
+        catch (Exception ex)
+        {
+            Log($"[Screenshot] Window creation failed: {ex}");
+            _screenshotCaptureWindow = null;
+        }
+
+        return Task.CompletedTask;
+    }
+
     private async Task ShutdownApplicationAsync(bool restoreManagedContents = false)
     {
         StopVisibleIdleMemoryMaintenance();
@@ -2919,11 +3020,16 @@ public partial class App : Application
         _diagnosticsService = null;
         if (DesktopAutoOrganizationWatcher is not null)
         {
-            DesktopAutoOrganizationWatcher.ItemOrganized -=
-                ShowDesktopAutoOrganizationNotification;
+            if (_desktopOrganizationNotificationCoalescer is not null)
+            {
+                DesktopAutoOrganizationWatcher.ItemOrganized -=
+                    _desktopOrganizationNotificationCoalescer.Enqueue;
+            }
             DesktopAutoOrganizationWatcher.Dispose();
         }
         DesktopAutoOrganizationWatcher = null;
+        _desktopOrganizationNotificationCoalescer?.Dispose();
+        _desktopOrganizationNotificationCoalescer = null;
         if (restoreManagedContents && WidgetManager is not null)
         {
             try
@@ -2950,12 +3056,16 @@ public partial class App : Application
         _nativeNotificationService = null;
         _todoReminderService?.Dispose();
         _todoReminderService = null;
+        QuickCaptureClipboardService?.Dispose();
+        QuickCaptureClipboardService = null;
         // Dispose hotkey services FIRST so their WH_KEYBOARD_LL hooks are
         // removed before the tray window is destroyed.  If the hooks remain
         // installed while the owning window is torn down, the OS may briefly
         // keep the gesture key in a "pressed" state, leaving keys like 'D'
         // appearing stuck even after the app exits.
         DisposeSearchServices();
+        _screenshotHotkeyService?.Dispose();
+        _screenshotHotkeyService = null;
         GlobalHotkeyService?.Dispose();
         GlobalHotkeyService = null;
 

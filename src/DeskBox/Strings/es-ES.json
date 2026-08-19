@@ -2060,6 +2060,7 @@
   "Onboarding.Organization.ScanFailedTitle": "No se pudo escanear el escritorio",
   "DesktopOrganization.Notification.Title": "Archivo organizado automáticamente",
   "DesktopOrganization.Notification.Body": "“{0}” se movió a “{1}”.",
+  "DesktopOrganization.Notification.BatchBody": "{0} elementos organizados automáticamente: {1}",
   "DesktopOrganization.Notification.Undo": "Deshacer",
   "DesktopOrganization.Undo.Title": "Deshacer la última organización",
   "DesktopOrganization.Undo.Empty": "No hay movimientos de archivos para deshacer.",

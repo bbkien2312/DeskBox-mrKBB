@@ -2060,6 +2060,7 @@
   "Onboarding.Organization.ScanFailedTitle": "ডেস্কটপ স্ক্যান করা যায়নি",
   "DesktopOrganization.Notification.Title": "ফাইল স্বয়ংক্রিয়ভাবে সংগঠিত",
   "DesktopOrganization.Notification.Body": "\"{0}\" \"{1}\" এ সরানো হয়েছে।",
+  "DesktopOrganization.Notification.BatchBody": "স্বয়ংক্রিয়ভাবে {0}টি আইটেম সংগঠিত হয়েছে: {1}",
   "DesktopOrganization.Notification.Undo": "পূর্বাবস্থায় ফেরান",
   "DesktopOrganization.Undo.Title": "সর্বশেষ সংস্থা পূর্বাবস্থায় ফেরান৷",
   "DesktopOrganization.Undo.Empty": "পূর্বাবস্থায় ফেরার জন্য কোনো ফাইল সরানো নেই।",

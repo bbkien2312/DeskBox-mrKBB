@@ -2060,6 +2060,7 @@
     "Onboarding.Organization.ScanFailedTitle": "Could not scan the desktop",
     "DesktopOrganization.Notification.Title": "File organized automatically",
     "DesktopOrganization.Notification.Body": "“{0}” was moved to “{1}”.",
+    "DesktopOrganization.Notification.BatchBody": "Automatically organized {0} items: {1}",
     "DesktopOrganization.Notification.Undo": "Undo",
     "DesktopOrganization.Undo.Title": "Undo the latest organization",
     "DesktopOrganization.Undo.Empty": "There are no file moves to undo.",
