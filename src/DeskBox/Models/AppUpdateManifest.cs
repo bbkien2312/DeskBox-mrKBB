@@ -3,6 +3,11 @@ namespace DeskBox.Models;
 public sealed class AppUpdateManifest
 {
     public int SchemaVersion { get; set; } = 1;
+    /// <summary>
+    /// Stable update wire contract shared by fork builds. This is intentionally
+    /// independent from the application/fork build number.
+    /// </summary>
+    public int UpdaterProtocolVersion { get; set; } = 1;
     public string Channel { get; set; } = "stable";
     public string Version { get; set; } = string.Empty;
     /// <summary>

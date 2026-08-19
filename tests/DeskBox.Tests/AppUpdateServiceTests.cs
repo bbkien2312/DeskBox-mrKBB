@@ -225,6 +225,45 @@ public sealed class AppUpdateServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CheckForUpdatesAsync_RejectsManifestFromNewerUpdaterProtocol()
+    {
+        using var httpClient = CreateHttpClient(request =>
+        {
+            if (request.RequestUri!.ToString().Contains("stable.json", StringComparison.OrdinalIgnoreCase))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(
+                        """
+                        {
+                          "schemaVersion": 1,
+                          "updaterProtocolVersion": 2,
+                          "version": "1.4.2.1",
+                          "downloadUrl": "https://github.com/example/DeskBox_Setup_1.4.2.1_x64.exe",
+                          "sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                        }
+                        """,
+                        Encoding.UTF8,
+                        "application/json")
+                };
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        });
+
+        var service = new AppUpdateService(
+            httpClient,
+            "https://deskbox.fun/update/stable.json",
+            _tempRoot,
+            AppUpdateService.DefaultGitHubLatestReleaseApiUrl);
+
+        var result = await service.CheckForUpdatesAsync("1.4.2.1");
+
+        Assert.Equal(AppUpdateCheckStatus.InvalidManifest, result.Status);
+        Assert.Contains("compatible", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task CheckForUpdatesAsync_FallsBackToGitHubShaAssetWhenDigestMissing()
     {
         using var httpClient = CreateHttpClient(request =>

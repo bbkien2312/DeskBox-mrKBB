@@ -12,6 +12,9 @@
     <DeskBoxForkVersion Condition="'$(DeskBoxForkVersion)' == ''">1.4.2.1</DeskBoxForkVersion>
     <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2.1-fork.3</DeskBoxForkDisplayVersion>
     <DeskBoxForkBuildNumber Condition="'$(DeskBoxForkBuildNumber)' == ''">3</DeskBoxForkBuildNumber>
+    <!-- Keep the update wire contract stable across fork builds. Increase
+         this only when a future updater can no longer read old manifests. -->
+    <DeskBoxUpdaterProtocolVersion Condition="'$(DeskBoxUpdaterProtocolVersion)' == ''">1</DeskBoxUpdaterProtocolVersion>
     <DeskBoxBuildNumber Condition="'$(DeskBoxBuildNumber)' == ''">dev</DeskBoxBuildNumber>
     <DeskBoxUpstreamCommit Condition="'$(DeskBoxUpstreamCommit)' == ''">unknown</DeskBoxUpstreamCommit>
     <DeskBoxForkCommit Condition="'$(DeskBoxForkCommit)' == ''">unknown</DeskBoxForkCommit>
@@ -60,6 +63,7 @@
     <AssemblyMetadata Include="DeskBox.ForkVersion" Value="$(DeskBoxForkVersion)" />
     <AssemblyMetadata Include="DeskBox.ForkDisplayVersion" Value="$(DeskBoxForkDisplayVersion)" />
     <AssemblyMetadata Include="DeskBox.ForkBuildNumber" Value="$(DeskBoxForkBuildNumber)" />
+    <AssemblyMetadata Include="DeskBox.UpdaterProtocolVersion" Value="$(DeskBoxUpdaterProtocolVersion)" />
     <AssemblyMetadata Include="DeskBox.BuildNumber" Value="$(DeskBoxBuildNumber)" />
     <AssemblyMetadata Include="DeskBox.UpstreamCommit" Value="$(DeskBoxUpstreamCommit)" />
     <AssemblyMetadata Include="DeskBox.ForkCommit" Value="$(DeskBoxForkCommit)" />

@@ -58,6 +58,7 @@ public sealed class AppUpdateService : IAppUpdateService
     public AppUpdateDeliveryKind DeliveryKind => AppUpdateDeliveryKind.DirectInstaller;
     internal static string CurrentInstallerArchitectureSuffix =>
         GetInstallerArchitectureSuffix(RuntimeInformation.ProcessArchitecture);
+    internal const int CurrentUpdaterProtocolVersion = 1;
 
     public async Task<AppUpdateCheckResult> CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
@@ -102,6 +103,7 @@ public sealed class AppUpdateService : IAppUpdateService
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             var manifest = await JsonSerializer.DeserializeAsync<AppUpdateManifest>(stream, s_jsonOptions, cancellationToken);
             if (manifest is null ||
+                manifest.UpdaterProtocolVersion > CurrentUpdaterProtocolVersion ||
                 !TrySelectInstallerForArchitecture(
                     manifest,
                     CurrentInstallerArchitectureSuffix) ||
@@ -112,7 +114,7 @@ public sealed class AppUpdateService : IAppUpdateService
                     AppUpdateCheckStatus.InvalidManifest,
                     currentVersion,
                     manifest,
-                    "The update manifest is missing installer metadata for this processor architecture.");
+                    "The update manifest is missing compatible installer metadata for this updater protocol or processor architecture.");
             }
 
             string remoteVersion = GetComparableManifestVersion(manifest);
@@ -552,10 +554,11 @@ public sealed class AppUpdateService : IAppUpdateService
         return new AppUpdateManifest
         {
             SchemaVersion = 1,
+            UpdaterProtocolVersion = CurrentUpdaterProtocolVersion,
             Channel = "stable",
             Version = version,
             ForkVersion = version,
-            ForkDisplayVersion = $"{version} (Fork)",
+            ForkDisplayVersion = version,
             ForkBuildNumber = ParseForkBuildNumber(release.TagName),
             UpstreamVersion = AppBuildMetadata.UpstreamVersion,
             DownloadUrl = installerAsset.BrowserDownloadUrl,
