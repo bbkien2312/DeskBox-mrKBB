@@ -226,7 +226,15 @@ if ($actualName -ne $assetName) {
     $assetName = $actualName
 }
 
-$hash = (Get-FileHash -Path $InstallerPath -Algorithm SHA256).Hash.ToUpperInvariant()
+$sha256 = [System.Security.Cryptography.SHA256]::Create()
+try {
+    # Get-FileHash is absent on a few stripped-down PowerShell hosts. Use the
+    # BCL directly so the same release script works on those machines too.
+    $hash = ([BitConverter]::ToString($sha256.ComputeHash([System.IO.File]::ReadAllBytes($InstallerPath)))).Replace("-", "")
+}
+finally {
+    $sha256.Dispose()
+}
 $size = (Get-Item $InstallerPath).Length
 $shaPath = "$InstallerPath.sha256"
 "$hash  $assetName" | Set-Content -Path $shaPath -Encoding ASCII
@@ -236,7 +244,7 @@ $shaPath = "$InstallerPath.sha256"
 $viSummary = [System.Net.WebUtility]::HtmlDecode(
     "DeskBox $displayVersion &#x0111;&#x00E3; s&#x1EB5;n s&#x00E0;ng c&#x1EAD;p nh&#x1EAD;t.")
 $viReleaseNotes = [System.Net.WebUtility]::HtmlDecode(
-    "C&#x1EAD;p nh&#x1EAD;t fork build $ForkBuildNumber v&#x1EDB;i c&#x01A1; ch&#x1EBF; updater d&#x00F9;ng chung.")
+    "C&#x1EAD;p nh&#x1EAD;t cache thumbnail tr&#x00EA;n &#x1ED5; &#x0111;&#x0129;a, ch&#x1EE5;p nhanh ch&#x1ECD;n c&#x1EED;a s&#x1ED5;, chuy&#x1EC3;n Desktop nhanh h&#x01A1;n, box m&#x1EDB;i s&#x1EAF;p x&#x1EBF;p theo lo&#x1EA1;i v&#x00E0 gi&#x1EA3;m cache RAM.")
 
 $downloadUrl = "https://github.com/$Repository/releases/download/$tag/$([Uri]::EscapeDataString($assetName))"
 $manifest = [ordered]@{
@@ -265,7 +273,7 @@ $manifest = [ordered]@{
     }
     releaseNotes = [ordered]@{
         "vi-VN" = $viReleaseNotes
-        "en-US" = "Fork build $ForkBuildNumber with the shared updater protocol."
+        "en-US" = "Disk thumbnail cache, frozen-window screenshot capture, faster Desktop moves, Type sorting for new boxes, and tighter RAM caches."
     }
 }
 
