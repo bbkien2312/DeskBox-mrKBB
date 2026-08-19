@@ -2075,6 +2075,34 @@ svc:Localized.DescriptionKey="Settings.DefaultWidth.Description"
 
                         <toolkit:SettingsCard
                             HorizontalContentAlignment="Right"
+                            svc:Localized.DescriptionKey="Settings.RestoreManagedContentsOnExit.Description"
+                            svc:Localized.HeaderKey="Settings.RestoreManagedContentsOnExit.Title">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE777;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                OnContent=""
+                                OffContent=""
+                                MinWidth="0"
+                                IsOn="{Binding RestoreManagedContentsOnExit, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+
+                        <toolkit:SettingsCard
+                            HorizontalContentAlignment="Right"
+                            svc:Localized.DescriptionKey="Settings.ReorganizeManagedContentsOnStartup.Description"
+                            svc:Localized.HeaderKey="Settings.ReorganizeManagedContentsOnStartup.Title">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE8B7;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                OnContent=""
+                                OffContent=""
+                                MinWidth="0"
+                                IsOn="{Binding ReorganizeManagedContentsOnStartup, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+
+                        <toolkit:SettingsCard
+                            HorizontalContentAlignment="Right"
                             svc:Localized.DescriptionKey="Settings.Onboarding.Description"
                             svc:Localized.HeaderKey="Settings.Onboarding.Title">
                             <toolkit:SettingsCard.HeaderIcon>
@@ -2448,10 +2476,22 @@ svc:Localized.DescriptionKey="Settings.DefaultWidth.Description"
                                                 Text="{Binding AppVersion}"
                                                 TextWrapping="Wrap" />
                                         </StackPanel>
-                                        <TextBlock
-                                            Style="{StaticResource SettingDescriptionTextStyle}"
-                                            svc:Localized.Key="Settings.About.Description" />
-                                    </StackPanel>
+                                         <TextBlock
+                                             Style="{StaticResource SettingDescriptionTextStyle}"
+                                             svc:Localized.Key="Settings.About.Description" />
+                                         <TextBlock
+                                             Style="{StaticResource SettingDescriptionTextStyle}"
+                                             Text="{Binding BuildMetadataText}"
+                                             TextWrapping="Wrap" />
+                                         <TextBlock
+                                             Style="{StaticResource SettingDescriptionTextStyle}"
+                                             Text="{Binding UpstreamCommitText}"
+                                             TextWrapping="Wrap" />
+                                         <TextBlock
+                                             Style="{StaticResource SettingDescriptionTextStyle}"
+                                             Text="{Binding ForkCommitText}"
+                                             TextWrapping="Wrap" />
+                                     </StackPanel>
                                     <StackPanel
                                         x:Name="AboutRightPanel"
                                         Grid.Column="2"

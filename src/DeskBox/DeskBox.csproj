@@ -6,10 +6,18 @@
     <!-- Keep the compile-time SDK modern while declaring the supported Win10 floor explicitly. -->
     <SupportedOSPlatformVersion>10.0.19044.0</SupportedOSPlatformVersion>
     <RootNamespace>DeskBox</RootNamespace>
-    <Version>1.4.2</Version>
-    <AssemblyVersion>1.4.2.0</AssemblyVersion>
-    <FileVersion>1.4.2.0</FileVersion>
-    <InformationalVersion>1.4.2</InformationalVersion>
+    <!-- The fork has its own comparable version while retaining the exact
+         upstream version in assembly metadata for diagnostics and updates. -->
+    <DeskBoxUpstreamVersion Condition="'$(DeskBoxUpstreamVersion)' == ''">1.4.2</DeskBoxUpstreamVersion>
+    <DeskBoxForkVersion Condition="'$(DeskBoxForkVersion)' == ''">1.4.2.1</DeskBoxForkVersion>
+    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2-fork.1</DeskBoxForkDisplayVersion>
+    <DeskBoxBuildNumber Condition="'$(DeskBoxBuildNumber)' == ''">dev</DeskBoxBuildNumber>
+    <DeskBoxUpstreamCommit Condition="'$(DeskBoxUpstreamCommit)' == ''">unknown</DeskBoxUpstreamCommit>
+    <DeskBoxForkCommit Condition="'$(DeskBoxForkCommit)' == ''">unknown</DeskBoxForkCommit>
+    <Version>$(DeskBoxForkVersion)</Version>
+    <AssemblyVersion Condition="'$(DeskBoxForkAssemblyVersion)' == ''">$(DeskBoxForkVersion)</AssemblyVersion>
+    <FileVersion Condition="'$(DeskBoxForkAssemblyVersion)' == ''">$(DeskBoxForkVersion)</FileVersion>
+    <InformationalVersion>$(DeskBoxForkDisplayVersion)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Platforms>x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
@@ -47,6 +55,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AssemblyMetadata Include="DeskBox.UpstreamVersion" Value="$(DeskBoxUpstreamVersion)" />
+    <AssemblyMetadata Include="DeskBox.ForkVersion" Value="$(DeskBoxForkVersion)" />
+    <AssemblyMetadata Include="DeskBox.ForkDisplayVersion" Value="$(DeskBoxForkDisplayVersion)" />
+    <AssemblyMetadata Include="DeskBox.BuildNumber" Value="$(DeskBoxBuildNumber)" />
+    <AssemblyMetadata Include="DeskBox.UpstreamCommit" Value="$(DeskBoxUpstreamCommit)" />
+    <AssemblyMetadata Include="DeskBox.ForkCommit" Value="$(DeskBoxForkCommit)" />
     <PackageReference Include="CommunityToolkit.WinUI.Animations" Version="8.2.251219" />
     <PackageReference Include="CommunityToolkit.WinUI.Controls.ColorPicker" Version="8.2.251219" />
     <PackageReference Include="CommunityToolkit.WinUI.Controls.Segmented" Version="8.2.251219" />
@@ -101,6 +115,7 @@
 <EmbeddedResource Include="Strings\ar-SA.json" />
 <EmbeddedResource Include="Strings\bn-BD.json" />
 <EmbeddedResource Include="Strings\ru-RU.json" />
+<EmbeddedResource Include="Strings\vi-VN.json" />
   </ItemGroup>
 
   <ItemGroup>

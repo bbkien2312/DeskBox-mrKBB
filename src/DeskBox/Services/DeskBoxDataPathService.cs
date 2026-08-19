@@ -6,6 +6,7 @@ namespace DeskBox.Services;
 public sealed class DeskBoxDataPathService
 {
     public const string DevelopmentRootEnvironmentVariable = "DESKBOX_DEV_DATA_ROOT";
+    public const string LogRootEnvironmentVariable = "DESKBOX_LOG_ROOT";
     private const string ProductionInstanceScope = "7F3A9B2E";
 
     public static DeskBoxDataPathService Current { get; } = new(ResolveDevelopmentRoot());
@@ -33,6 +34,7 @@ public sealed class DeskBoxDataPathService
     public string ActivationEventName => $"DeskBox_Activate_Event_{InstanceScope}";
     public string SingleInstanceMutexName => $"DeskBox_SingleInstance_Mutex_{InstanceScope}";
     public string DataDirectory => Path.Combine(RootPath, "data");
+    public string LogDirectory => ResolveLogDirectory();
     public string UpdatesDirectory => Path.Combine(RootPath, "updates");
     // Recovery snapshots intentionally live beside, rather than inside, the
     // app-data root. A normal uninstall can therefore never erase the only
@@ -42,7 +44,15 @@ public sealed class DeskBoxDataPathService
         : Path.Combine(
             Path.GetDirectoryName(RootPath) ?? RootPath,
             "DeskBox-Recovery");
-    public string LogFilePath => Path.Combine(RootPath, "DeskBox.log");
+    public string LogFilePath => Path.Combine(LogDirectory, "DeskBox.log");
+
+    private string ResolveLogDirectory()
+    {
+        string? overrideRoot = Environment.GetEnvironmentVariable(LogRootEnvironmentVariable);
+        return string.IsNullOrWhiteSpace(overrideRoot)
+            ? RootPath
+            : Path.GetFullPath(overrideRoot.Trim());
+    }
 
     private static string? ResolveDevelopmentRoot()
     {

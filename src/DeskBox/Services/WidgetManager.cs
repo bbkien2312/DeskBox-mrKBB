@@ -1,4 +1,5 @@
 ﻿﻿using DeskBox.Models;
+using System.Text.Json;
 using DeskBox.Helpers;
 using DeskBox.Controls.WidgetContents;
 using DeskBox.ViewModels;
@@ -30,6 +31,28 @@ public sealed record ManagedStorageFolderCleanupCandidate(
     string Name,
     string Path,
     int ItemCount);
+
+public sealed record ManagedStorageRestoreResult(
+    int WidgetCount,
+    int ItemCount,
+    int FailedItemCount);
+
+internal sealed class ManagedStorageRestoreJournal
+{
+    public DateTimeOffset StartedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? CompletedAtUtc { get; set; }
+    public List<ManagedStorageRestoreJournalItem> Items { get; set; } = [];
+}
+
+internal sealed class ManagedStorageRestoreJournalItem
+{
+    public string WidgetId { get; set; } = string.Empty;
+    public string WidgetName { get; set; } = string.Empty;
+    public string SourcePath { get; set; } = string.Empty;
+    public string? DestinationPath { get; set; }
+    public string Status { get; set; } = "Pending";
+    public string? Error { get; set; }
+}
 
 internal sealed record FeatureWidgetHandler(
     WidgetKind WidgetKind,
@@ -1657,6 +1680,139 @@ public sealed partial class WidgetManager
         _widgetWindowHandles.Clear();
         _widgetSurfaces.Clear();
         _sessionManager.MarkHidden("close-all");
+    }
+
+    /// <summary>
+    /// Restores direct children of default managed folders to the user's
+    /// Desktop before a full tray exit. OrganizerService supplies collision
+    /// safe names and an undo history entry. The journal remains in the
+    /// configured log directory so a failed restore is visible.
+    /// </summary>
+    public async Task<ManagedStorageRestoreResult> RestoreDefaultManagedStorageContentsToDesktopAsync(
+        CancellationToken cancellationToken = default)
+    {
+        string desktopPath = Path.GetFullPath(_desktopPathProvider());
+        var journal = new ManagedStorageRestoreJournal();
+        string journalPath = Path.Combine(
+            DeskBoxDataPathService.Current.LogDirectory,
+            "managed-storage-restore-journal.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(journalPath)!);
+        int widgetCount = 0;
+        int itemCount = 0;
+        int failedItemCount = 0;
+
+        await PersistManagedStorageRestoreJournalAsync(journalPath, journal);
+        foreach (WidgetConfig widget in _settingsService.Settings.Widgets
+                     .Where(candidate =>
+                         candidate.WidgetKind == WidgetKind.File &&
+                         candidate.FollowsDefaultStoragePath &&
+                         !candidate.IsDisabled &&
+                         !IsDeleted(candidate.Id) &&
+                         !string.IsNullOrWhiteSpace(candidate.MappedFolderPath))
+                     .ToList())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            string folderPath = Path.GetFullPath(widget.MappedFolderPath!);
+            if (string.Equals(folderPath, desktopPath, StringComparison.OrdinalIgnoreCase) ||
+                !Directory.Exists(folderPath))
+            {
+                continue;
+            }
+
+            string[] sourcePaths;
+            try
+            {
+                sourcePaths = Directory.GetFileSystemEntries(
+                    folderPath,
+                    "*",
+                    SearchOption.TopDirectoryOnly);
+            }
+            catch (Exception ex)
+            {
+                App.Log($"[ManagedStorageRestore][ERROR] enumerate widget='{widget.Name}' path='{folderPath}': {ex.Message}");
+                failedItemCount++;
+                continue;
+            }
+
+            if (sourcePaths.Length == 0)
+            {
+                continue;
+            }
+
+            widgetCount++;
+            itemCount += sourcePaths.Length;
+            var journalItems = sourcePaths.Select(path => new ManagedStorageRestoreJournalItem
+            {
+                WidgetId = widget.Id,
+                WidgetName = widget.Name,
+                SourcePath = Path.GetFullPath(path)
+            }).ToList();
+            journal.Items.AddRange(journalItems);
+            await PersistManagedStorageRestoreJournalAsync(journalPath, journal);
+            App.Log($"[ManagedStorageRestore][INFO] widget='{widget.Name}' items={sourcePaths.Length}");
+
+            try
+            {
+                OrganizationHistoryEntry history =
+                    await _organizerService.MoveItemsBackToDesktopAsync(
+                        widget,
+                        widget.Name,
+                        sourcePaths,
+                        useShellProgress: false);
+                foreach (OrganizationHistoryItem movedItem in history.Items)
+                {
+                    ManagedStorageRestoreJournalItem? journalItem = journalItems.FirstOrDefault(item =>
+                        string.Equals(item.SourcePath, movedItem.SourcePath, StringComparison.OrdinalIgnoreCase));
+                    if (journalItem is null)
+                    {
+                        continue;
+                    }
+
+                    journalItem.DestinationPath = movedItem.DestinationPath;
+                    journalItem.Status = "Completed";
+                    App.Log($"[ManagedStorageRestore][OK] '{journalItem.SourcePath}' -> '{journalItem.DestinationPath}'");
+                }
+
+                foreach (ManagedStorageRestoreJournalItem journalItem in journalItems.Where(item => item.Status != "Completed"))
+                {
+                    journalItem.Status = "Warning";
+                    journalItem.Error = "Transfer returned without a matching completed history item.";
+                    failedItemCount++;
+                    App.Log($"[ManagedStorageRestore][WARNING] incomplete source='{journalItem.SourcePath}'");
+                }
+
+                await PersistManagedStorageRestoreJournalAsync(journalPath, journal);
+                await RefreshFileWidgetAsync(widget.Id);
+            }
+            catch (Exception ex)
+            {
+                failedItemCount += journalItems.Count(item => item.Status != "Completed");
+                foreach (ManagedStorageRestoreJournalItem journalItem in journalItems.Where(item => item.Status != "Completed"))
+                {
+                    journalItem.Status = "Error";
+                    journalItem.Error = ex.Message;
+                }
+                await PersistManagedStorageRestoreJournalAsync(journalPath, journal);
+                App.Log($"[ManagedStorageRestore][ERROR] widget='{widget.Name}' path='{folderPath}': {ex}");
+            }
+        }
+
+        journal.CompletedAtUtc = DateTimeOffset.UtcNow;
+        await PersistManagedStorageRestoreJournalAsync(journalPath, journal);
+        App.Log($"[ManagedStorageRestore][OK] widgets={widgetCount} items={itemCount} failed={failedItemCount}");
+        return new ManagedStorageRestoreResult(widgetCount, itemCount, failedItemCount);
+    }
+
+    private static async Task PersistManagedStorageRestoreJournalAsync(
+        string journalPath,
+        ManagedStorageRestoreJournal journal)
+    {
+        string tempPath = journalPath + ".tmp";
+        string json = JsonSerializer.Serialize(
+            journal,
+            new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(tempPath, json);
+        File.Move(tempPath, journalPath, overwrite: true);
     }
 
     public int GetDefaultManagedStorageWidgetCount()

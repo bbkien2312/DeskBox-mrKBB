@@ -13,6 +13,7 @@ public sealed class DesktopOrganizationCoordinator
     private readonly DesktopOrganizationPlanner _planner;
     private readonly DesktopOrganizationPlacementPlanner _placementPlanner = new();
     private readonly DesktopOrganizationTransaction _transaction;
+    private readonly DesktopOrganizationLogService _log;
 
     public DesktopOrganizationCoordinator(
         SettingsService settingsService,
@@ -25,18 +26,37 @@ public sealed class DesktopOrganizationCoordinator
         _widgetManager = widgetManager;
         _organizerService = organizerService;
         _localizationService = localizationService;
+        _log = new DesktopOrganizationLogService();
         var classifier = new DesktopOrganizationClassifier();
         _scanner = new DesktopOrganizationScanner(classifier);
         _planner = new DesktopOrganizationPlanner(new DesktopOrganizationRuleResolver());
-        _transaction = new DesktopOrganizationTransaction(settingsService, fileService);
+        _transaction = new DesktopOrganizationTransaction(settingsService, fileService, log: _log);
     }
 
     public async Task<DesktopOrganizationPlan> BuildPlanAsync(
         bool includeSlowItems = false,
+        bool includeManagedWidgetItems = false,
         CancellationToken cancellationToken = default)
     {
+        _log.Info(
+            "ScanStarted",
+            $"includeSlowItems={includeSlowItems}; includeManagedWidgetItems={includeManagedWidgetItems}");
+        string[] managedRoots = includeManagedWidgetItems
+            ? _settingsService.Settings.Widgets
+                .Where(widget => widget.WidgetKind == WidgetKind.File &&
+                                 !widget.IsDisabled &&
+                                 !string.IsNullOrWhiteSpace(widget.MappedFolderPath))
+                .Select(widget => widget.MappedFolderPath!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray()
+            : [];
         DesktopOrganizationScanResult scan =
-            await _scanner.ScanAsync(includeSlowItems, cancellationToken);
+            await _scanner.ScanAsync(
+                includeSlowItems,
+                cancellationToken,
+                managedRoots,
+                includePublicDesktopItems: true,
+                includeFolders: true);
         string root = SettingsService.NormalizeManagedStorageRootPath(
             _settingsService.Settings.DefaultManagedStorageRootPath);
         DesktopOrganizationPlan plan = _planner.CreatePlan(
@@ -47,6 +67,9 @@ public sealed class DesktopOrganizationCoordinator
             ResolveCategoryName);
 
         AssignNonOverlappingBounds(plan);
+        _log.Ok(
+            "ScanCompleted",
+            $"found={scan.TotalCount}; eligible={scan.EligibleCount}; targets={plan.Targets.Count}; newTargets={plan.NewWidgetCount}");
         return plan;
     }
 
@@ -169,6 +192,9 @@ public sealed class DesktopOrganizationCoordinator
         DesktopOrganizationExecutionResult result;
         try
         {
+            _log.Info(
+                "CoordinatorExecuteStarted",
+                $"items={plan.EligibleItemCount}; targets={plan.Targets.Count}");
             result = await _transaction.ExecuteAsync(plan, progress, cancellationToken);
         }
         finally
@@ -194,6 +220,7 @@ public sealed class DesktopOrganizationCoordinator
         }
         catch
         {
+            _log.Error("CoordinatorRefreshFailed", "Widget refresh/show failed after file transfer; undo was requested.");
             foreach (string widgetId in shownWidgetIds)
             {
                 await _widgetManager.RemoveWidgetAsync(widgetId, WidgetRemovalAction.RemoveWidgetOnly);

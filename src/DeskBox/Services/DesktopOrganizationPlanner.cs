@@ -37,6 +37,13 @@ public sealed class DesktopOrganizationPlanner
 
             if (widget is not null && !string.IsNullOrWhiteSpace(widget.MappedFolderPath))
             {
+                if (IsUnderDirectory(item.SourcePath, widget.MappedFolderPath))
+                {
+                    // A reclassification scan can include the destination
+                    // widget itself. Never plan a self-move.
+                    continue;
+                }
+
                 if (!targets.TryGetValue(widget.Id, out MutableTarget? existing))
                 {
                     existing = new MutableTarget(
@@ -112,7 +119,9 @@ public sealed class DesktopOrganizationPlanner
                      .Where(categoryId => categoryId != DesktopOrganizationCategoryIds.Other)
                      .ToList())
         {
-            if (categories[categoryId].Count >= MinimumStandaloneCategoryItemCount)
+            if (categories[categoryId].Count >= MinimumStandaloneCategoryItemCount ||
+                categoryId is DesktopOrganizationCategoryIds.Folders or
+                DesktopOrganizationCategoryIds.SystemLinks)
             {
                 continue;
             }
@@ -163,6 +172,22 @@ public sealed class DesktopOrganizationPlanner
         return string.IsNullOrWhiteSpace(sanitized)
             ? DesktopOrganizationCategoryIds.Other
             : sanitized;
+    }
+
+    private static bool IsUnderDirectory(string path, string directory)
+    {
+        try
+        {
+            string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory));
+            string candidate = Path.GetFullPath(path);
+            return candidate.StartsWith(
+                $"{root}{Path.DirectorySeparatorChar}",
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private sealed class MutableTarget(

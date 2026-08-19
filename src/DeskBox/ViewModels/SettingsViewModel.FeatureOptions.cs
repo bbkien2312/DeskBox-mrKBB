@@ -858,7 +858,8 @@ set => WidgetOpacity = Math.Clamp(1.0 - value / 100d, SettingsService.MinWidgetO
         LocalizationService.LanguageFrench,
         LocalizationService.LanguageArabic,
         LocalizationService.LanguageBengali,
-        LocalizationService.LanguageRussian
+        LocalizationService.LanguageRussian,
+        LocalizationService.LanguageVietnamese
     ];
     public string[] AvailableLanguageDisplayNames => _cachedLanguageDisplayNames ??= AvailableLanguages.Select(_localizationService.GetLanguageDisplayName).ToArray();
     public string[] AvailableWidgetCornerPreferences { get; } =

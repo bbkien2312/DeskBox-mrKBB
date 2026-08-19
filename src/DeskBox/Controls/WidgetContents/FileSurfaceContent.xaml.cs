@@ -60,6 +60,7 @@ public sealed partial class FileSurfaceContent :
     private string[] _activeDragSourcePaths = [];
     private bool _activeDragHasStorageItems;
     private bool _activeDragUsesVirtualStorageItems;
+    private bool _nativeShortcutDragHandled;
     private Task<HashSet<string>?>? _activeDragDesktopSnapshotTask;
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private Border? _folderDropTarget;
@@ -68,6 +69,10 @@ public sealed partial class FileSurfaceContent :
     private bool _stackPointerDragStarted;
     private string? _lastStackInputKey;
     private long _lastStackInputTick;
+    private WidgetItem? _lastClickedItem;
+    private long _lastItemClickTick;
+    private string _typeAheadBuffer = string.Empty;
+    private long _typeAheadLastInputTick;
     private bool _isImportBusy;
     private IntPtr _hostWindowHandle;
     private DateTimeOffset? _importBusyStartedAtUtc;
@@ -520,6 +525,27 @@ public sealed partial class FileSurfaceContent :
         bool shiftPressed =
             Win32Helper.IsKeyPressed(VirtualKey.Shift);
 
+        if (_settingsService.Settings.DoubleClickToOpen &&
+            !controlPressed &&
+            !shiftPressed)
+        {
+            long now = Environment.TickCount64;
+            long doubleClickMilliseconds =
+                (long)Win32Helper.WindowsDoubleClickInterval.TotalMilliseconds;
+            if (ReferenceEquals(_lastClickedItem, item) &&
+                now - _lastItemClickTick > doubleClickMilliseconds)
+            {
+                _lastClickedItem = null;
+                _lastItemClickTick = 0;
+                await RenameItemAsync(item);
+                return;
+            }
+
+            _lastClickedItem = item;
+            _lastItemClickTick = now;
+            return;
+        }
+
         if (!_settingsService.Settings.DoubleClickToOpen &&
             !controlPressed &&
             !shiftPressed)
@@ -572,10 +598,12 @@ public sealed partial class FileSurfaceContent :
 
         if (item is WidgetStackItem)
         {
+            _lastClickedItem = null;
             e.Handled = true;
             return;
         }
 
+        _lastClickedItem = null;
         await ActivateItemAsync(item);
         e.Handled = true;
     }
@@ -641,6 +669,7 @@ public sealed partial class FileSurfaceContent :
         _activeDragSourcePaths = [];
         _activeDragHasStorageItems = false;
         _activeDragUsesVirtualStorageItems = false;
+        _nativeShortcutDragHandled = false;
         _activeDragDesktopSnapshotTask = null;
         ClearFolderDropTarget();
         HideSurfaceReorderInsertionIndicator();
@@ -729,6 +758,44 @@ public sealed partial class FileSurfaceContent :
             return;
         }
 
+        // WinUI's DataPackage path for .lnk files is virtual because the
+        // StorageFile broker rejects some shell shortcuts. That virtual
+        // payload is copy-only from Explorer's point of view and the old
+        // completion fallback could therefore redirect the drag to Desktop.
+        // Give Explorer the real paths through OLE instead: Explorer then
+        // decides the actual destination and performs its normal move/copy.
+        if (NativeFileDragSource.TryRun(
+                _hostWindowHandle,
+                sourcePaths,
+                out uint nativeEffect))
+        {
+            e.Cancel = true;
+            _nativeShortcutDragHandled = true;
+            string[] nativePaths = sourcePaths.ToArray();
+            _ = DispatcherQueue.TryEnqueue(async () =>
+            {
+                try
+                {
+                    await Task.Delay(150);
+                    if (nativeEffect == NativeDropEffectPolicy.Move)
+                    {
+                        await ObserveExternalDragOutAsync(
+                            nativePaths,
+                            _lifetimeCancellation.Token);
+                    }
+                    else
+                    {
+                        await RefreshAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    App.Log($"[NativeDrag] completion refresh failed: {ex.Message}");
+                }
+            });
+            return;
+        }
+
         // DataPackage.RequestedOperation is a single preferred operation,
         // while AllowedOperations controls the permitted set. Managed storage
         // shortcuts are being restored to the desktop, so both are Move.
@@ -750,6 +817,15 @@ public sealed partial class FileSurfaceContent :
                 .Select(Path.GetFullPath)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
+        if (_nativeShortcutDragHandled)
+        {
+            _nativeShortcutDragHandled = false;
+            _activeDragSourcePaths = [];
+            _activeDragHasStorageItems = false;
+            _activeDragUsesVirtualStorageItems = false;
+            _activeDragDesktopSnapshotTask = null;
+            return;
+        }
         bool hasStorageItems = _activeDragHasStorageItems;
         bool usesVirtualStorageItems =
             _activeDragUsesVirtualStorageItems;
@@ -2482,6 +2558,11 @@ public sealed partial class FileSurfaceContent :
             return;
         }
 
+        if (TryHandleTypeAhead(e))
+        {
+            return;
+        }
+
         if (await TryHandleClipboardShortcutAsync(e))
         {
             return;
@@ -2493,6 +2574,100 @@ public sealed partial class FileSurfaceContent :
         }
 
         QueueQuickLookBoundaryNavigation(e);
+    }
+
+    private bool TryHandleTypeAhead(KeyRoutedEventArgs e)
+    {
+        if (e.Handled ||
+            e.OriginalSource is DependencyObject source &&
+            FileItemSelectionGeometry.HasAncestor<TextBox>(source) ||
+            Win32Helper.IsKeyPressed(VirtualKey.Control) ||
+            Win32Helper.IsKeyPressed(VirtualKey.Menu) ||
+            Win32Helper.IsKeyPressed(VirtualKey.Shift) ||
+            !TryGetTypeAheadCharacter(e.Key, out char character))
+        {
+            return false;
+        }
+
+        long now = Environment.TickCount64;
+        long timeout = 900;
+        string proposed = now - _typeAheadLastInputTick <= timeout
+            ? _typeAheadBuffer + character
+            : character.ToString();
+        ListViewBase activeView = GetActiveItemsView();
+        WidgetItem? selected = activeView.SelectedItems
+            .OfType<WidgetItem>()
+            .FirstOrDefault(item => item is not WidgetStackItem);
+        WidgetItem[] items = activeView.Items
+            .OfType<WidgetItem>()
+            .Where(item => item is not WidgetStackItem)
+            .ToArray();
+
+        WidgetItem? match = FindTypeAheadMatch(items, proposed, selected);
+        if (match is null && proposed.Length > 1)
+        {
+            proposed = character.ToString();
+            match = FindTypeAheadMatch(items, proposed, selected);
+        }
+
+        if (match is null)
+        {
+            return false;
+        }
+
+        _typeAheadBuffer = proposed;
+        _typeAheadLastInputTick = now;
+        activeView.SelectedItems.Clear();
+        activeView.SelectedItems.Add(match);
+        activeView.ScrollIntoView(match);
+        activeView.Focus(FocusState.Programmatic);
+        UpdateSelectionCommandBar();
+        e.Handled = true;
+        return true;
+    }
+
+    private static WidgetItem? FindTypeAheadMatch(
+        IReadOnlyList<WidgetItem> items,
+        string prefix,
+        WidgetItem? selected)
+    {
+        if (items.Count == 0 || string.IsNullOrWhiteSpace(prefix))
+        {
+            return null;
+        }
+
+        int selectedIndex = selected is null
+            ? -1
+            : Array.IndexOf(items.ToArray(), selected);
+        IEnumerable<WidgetItem> ordered = items
+            .Skip(selectedIndex + 1)
+            .Concat(items.Take(selectedIndex + 1));
+        return ordered.FirstOrDefault(item =>
+            item.Name.StartsWith(prefix, StringComparison.CurrentCultureIgnoreCase));
+    }
+
+    private static bool TryGetTypeAheadCharacter(VirtualKey key, out char character)
+    {
+        if (key >= VirtualKey.A && key <= VirtualKey.Z)
+        {
+            character = (char)('a' + ((int)key - (int)VirtualKey.A));
+            return true;
+        }
+
+        if (key >= VirtualKey.Number0 && key <= VirtualKey.Number9)
+        {
+            character = (char)('0' + ((int)key - (int)VirtualKey.Number0));
+            return true;
+        }
+
+        if (key >= VirtualKey.NumberPad0 && key <= VirtualKey.NumberPad9)
+        {
+            character = (char)('0' + ((int)key - (int)VirtualKey.NumberPad0));
+            return true;
+        }
+
+        character = default;
+        return false;
     }
 
     internal async Task<bool> TryHandleClipboardShortcutAsync(

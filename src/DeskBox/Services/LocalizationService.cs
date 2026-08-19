@@ -20,6 +20,7 @@ public sealed class LocalizationService
     public const string LanguageArabic = SettingsService.LanguageArabic;
     public const string LanguageBengali = SettingsService.LanguageBengali;
     public const string LanguageRussian = SettingsService.LanguageRussian;
+    public const string LanguageVietnamese = SettingsService.LanguageVietnamese;
 
     private readonly SettingsService _settingsService;
 
@@ -64,6 +65,7 @@ public sealed class LocalizationService
         LanguageArabic => "ar",
         LanguageBengali => "bn",
         LanguageRussian => "ru",
+        LanguageVietnamese => "vi",
         _ => "en"
     };
 
@@ -80,7 +82,8 @@ public sealed class LocalizationService
         LanguageFrench,
         LanguageArabic,
         LanguageBengali,
-        LanguageRussian
+        LanguageRussian,
+        LanguageVietnamese
     ];
 
     public string GetLanguageDisplayName(string language)
@@ -98,6 +101,7 @@ public sealed class LocalizationService
             LanguageArabic => "العربية",
             LanguageBengali => "বাংলা",
             LanguageRussian => "Русский",
+            LanguageVietnamese => "Tiếng Việt",
             _ => T("Language.System")
         };
     }
@@ -163,6 +167,7 @@ public sealed class LocalizationService
             LanguageArabic => ArSa,
             LanguageBengali => BnBd,
             LanguageRussian => RuRu,
+            LanguageVietnamese => ViVn,
             _ => IsEnglish ? EnUs : ZhCn
         };
         
@@ -199,7 +204,7 @@ public sealed class LocalizationService
     public static string NormalizeLanguageSetting(string? language)
     {
         return language is LanguageChinese or LanguageEnglish or LanguageJapanese or LanguageGerman or LanguagePortuguese
-            or LanguageHindi or LanguageSpanish or LanguageFrench or LanguageArabic or LanguageBengali or LanguageRussian
+            or LanguageHindi or LanguageSpanish or LanguageFrench or LanguageArabic or LanguageBengali or LanguageRussian or LanguageVietnamese
             ? language
             : LanguageSystem;
     }
@@ -227,6 +232,8 @@ public sealed class LocalizationService
             return LanguageBengali;
         if (name.StartsWith("ru", StringComparison.OrdinalIgnoreCase))
             return LanguageRussian;
+        if (name.StartsWith("vi", StringComparison.OrdinalIgnoreCase))
+            return LanguageVietnamese;
         return LanguageEnglish;
     }
 
@@ -256,7 +263,8 @@ public sealed class LocalizationService
                     || value == LanguageFrench
                     || value == LanguageArabic
                     || value == LanguageBengali
-                    || value == LanguageRussian))
+                    || value == LanguageRussian
+                    || value == LanguageVietnamese))
             {
                 return value;
             }
@@ -281,6 +289,7 @@ public sealed class LocalizationService
     private static Dictionary<string, string>? _arSa;
     private static Dictionary<string, string>? _bnBd;
     private static Dictionary<string, string>? _ruRu;
+    private static Dictionary<string, string>? _viVn;
     private static readonly object s_loadLock = new();
 
     private static Dictionary<string, string> ZhCn
@@ -423,6 +432,19 @@ public sealed class LocalizationService
                 _ruRu ??= LoadStringResource("DeskBox.Strings.ru-RU.json");
             }
             return _ruRu;
+        }
+    }
+
+    private static Dictionary<string, string> ViVn
+    {
+        get
+        {
+            if (_viVn is not null) return _viVn;
+            lock (s_loadLock)
+            {
+                _viVn ??= LoadStringResource("DeskBox.Strings.vi-VN.json");
+            }
+            return _viVn;
         }
     }
 

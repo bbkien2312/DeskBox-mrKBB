@@ -49,6 +49,28 @@ public partial class SettingsViewModel
         _settingsService.SaveDebounced();
     }
 
+    partial void OnRestoreManagedContentsOnExitChanged(bool value)
+    {
+        if (_isRestoringDefaults)
+        {
+            return;
+        }
+
+        _settingsService.Settings.RestoreManagedContentsOnExit = value;
+        _settingsService.SaveDebounced();
+    }
+
+    partial void OnReorganizeManagedContentsOnStartupChanged(bool value)
+    {
+        if (_isRestoringDefaults)
+        {
+            return;
+        }
+
+        _settingsService.Settings.ReorganizeManagedContentsOnStartup = value;
+        _settingsService.SaveDebounced();
+    }
+
     partial void OnResizeSnapEnabledChanged(bool value)
     {
         if (_isRestoringDefaults)

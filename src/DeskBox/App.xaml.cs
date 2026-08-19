@@ -981,6 +981,10 @@ public partial class App : Application
                 WidgetManager);
             DesktopAutoOrganizationWatcher.ItemOrganized += ShowDesktopAutoOrganizationNotification;
             DesktopAutoOrganizationWatcher.Start();
+            if (SettingsService.Settings.ReorganizeManagedContentsOnStartup)
+            {
+                DesktopAutoOrganizationWatcher.QueueExistingDesktopItems();
+            }
 
             await EnsureOnboardingAsync(isInteractiveLaunch: !IsStartupMode);
 
@@ -2881,22 +2885,23 @@ public partial class App : Application
     public async Task ShutdownForUpdateAsync()
     {
         Log("ShutdownForUpdateAsync invoked");
-        await ShutdownApplicationAsync();
+        await ShutdownApplicationAsync(restoreManagedContents: false);
     }
 
     public async Task ShutdownForRestartAsync()
     {
         Log("ShutdownForRestartAsync invoked");
-        await ShutdownApplicationAsync();
+        await ShutdownApplicationAsync(restoreManagedContents: false);
     }
 
     private async void ExitApplication()
     {
         Log("ExitApplication invoked");
-        await ShutdownApplicationAsync();
+        await ShutdownApplicationAsync(
+            restoreManagedContents: SettingsService.Settings.RestoreManagedContentsOnExit);
     }
 
-    private async Task ShutdownApplicationAsync()
+    private async Task ShutdownApplicationAsync(bool restoreManagedContents = false)
     {
         StopVisibleIdleMemoryMaintenance();
 
@@ -2919,6 +2924,23 @@ public partial class App : Application
             DesktopAutoOrganizationWatcher.Dispose();
         }
         DesktopAutoOrganizationWatcher = null;
+        if (restoreManagedContents && WidgetManager is not null)
+        {
+            try
+            {
+                ManagedStorageRestoreResult result =
+                    await WidgetManager.RestoreDefaultManagedStorageContentsToDesktopAsync();
+                Log($"[ManagedStorageRestore] Exit restore completed widgets={result.WidgetCount} items={result.ItemCount} failed={result.FailedItemCount}");
+            }
+            catch (OperationCanceledException)
+            {
+                Log("[ManagedStorageRestore] Exit restore was canceled.");
+            }
+            catch (Exception ex)
+            {
+                Log($"[ManagedStorageRestore] Exit restore failed: {ex}");
+            }
+        }
         // Dispose live surfaces before the final flush. A surface may commit a
         // last drag/order snapshot while it is being torn down.
         WidgetManager?.CloseAll();

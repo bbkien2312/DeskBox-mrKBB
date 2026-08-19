@@ -71,6 +71,15 @@
 
                     <Grid x:Name="BottomInfoGrid">
                         <StackPanel Spacing="8">
+                            <CheckBox
+                                x:Name="IncludeManagedWidgetItemsCheckBox"
+                                IsChecked="False"
+                                svc:Localized.Key="DesktopOrganization.Preview.ManagedWidgetOption" />
+                            <TextBlock
+                                Margin="0,-4,0,0"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextWrapping="Wrap"
+                                svc:Localized.Key="DesktopOrganization.Preview.ManagedWidgetOptionDescription" />
                             <StackPanel Spacing="2">
                                 <TextBlock
                                     x:Name="StorageSectionTitleText"

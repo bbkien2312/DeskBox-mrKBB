@@ -58,6 +58,7 @@ public sealed partial class DesktopOrganizationWindow : Window
         TaskView.CloseRequested += TaskView_CloseRequested;
         TaskView.OrganizationCompleted += TaskView_OrganizationCompleted;
         TaskView.OrganizationUndone += TaskView_OrganizationUndone;
+        App.Current.LocalizationService.LanguageChanged += OnLanguageChanged;
         _appWindow.Closing += AppWindow_Closing;
         AppTitleBar.ActualThemeChanged += AppTitleBar_ActualThemeChanged;
         Closed += DesktopOrganizationWindow_Closed;
@@ -163,6 +164,17 @@ public sealed partial class DesktopOrganizationWindow : Window
 
     private void TaskView_OrganizationUndone(object? sender, EventArgs e) =>
         OrganizationUndone?.Invoke(this, EventArgs.Empty);
+
+    private void OnLanguageChanged()
+    {
+        if (!DispatcherQueue.HasThreadAccess)
+        {
+            DispatcherQueue.TryEnqueue(OnLanguageChanged);
+            return;
+        }
+
+        Title = App.Current.LocalizationService.T("DesktopOrganization.Window.Title");
+    }
 
     private void RootGrid_KeyDown(object sender, KeyRoutedEventArgs e)
     {
@@ -288,6 +300,7 @@ public sealed partial class DesktopOrganizationWindow : Window
         TaskView.CloseRequested -= TaskView_CloseRequested;
         TaskView.OrganizationCompleted -= TaskView_OrganizationCompleted;
         TaskView.OrganizationUndone -= TaskView_OrganizationUndone;
+        App.Current.LocalizationService.LanguageChanged -= OnLanguageChanged;
         _appWindow.Closing -= AppWindow_Closing;
         AppTitleBar.ActualThemeChanged -= AppTitleBar_ActualThemeChanged;
         Closed -= DesktopOrganizationWindow_Closed;

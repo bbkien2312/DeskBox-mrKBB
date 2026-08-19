@@ -300,7 +300,9 @@ public sealed partial class DesktopOrganizationSettingsSection : UserControl
                      DesktopOrganizationSubtypeIds.PowerPoint,
                      DesktopOrganizationSubtypeIds.Text,
                      DesktopOrganizationSubtypeIds.Audio,
-                     DesktopOrganizationSubtypeIds.Video
+                     DesktopOrganizationSubtypeIds.Video,
+                     DesktopOrganizationSubtypeIds.Archive,
+                     DesktopOrganizationSubtypeIds.Installer
                  })
         {
             var checkBox = new CheckBox
@@ -394,7 +396,9 @@ public sealed partial class DesktopOrganizationSettingsSection : UserControl
                     DesktopOrganizationClassifier.GetCategoryExtensions(categoryId),
                     categoryId == DesktopOrganizationCategoryIds.Other
                         ? T("DesktopOrganization.Rule.OtherExtensions")
-                        : null),
+                        : categoryId == DesktopOrganizationCategoryIds.Folders
+                            ? T("DesktopOrganization.Rule.FolderDescription")
+                            : null),
                 Tag = categoryId,
                 IsChecked = _selectedRule.CategoryIds.Contains(categoryId, StringComparer.Ordinal)
             };

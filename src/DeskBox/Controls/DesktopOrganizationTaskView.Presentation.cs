@@ -444,6 +444,8 @@ public sealed partial class DesktopOrganizationTaskView
                 DesktopOrganizationCategoryIds.Media => "\uE714",
                 DesktopOrganizationCategoryIds.Shortcuts => "\uE71B",
                 DesktopOrganizationCategoryIds.Packages => "\uE7B8",
+                DesktopOrganizationCategoryIds.Folders => "\uE8B7",
+                DesktopOrganizationCategoryIds.SystemLinks => "\uE71B",
                 _ => "\uE7C3"
             }
             : "\uE7BA";

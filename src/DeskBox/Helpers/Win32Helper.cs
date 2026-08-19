@@ -42,6 +42,12 @@ public static partial class Win32Helper
         IntPtr region,
         [MarshalAs(UnmanagedType.Bool)] bool redraw);
 
+    [LibraryImport("user32.dll")]
+    private static partial uint GetDoubleClickTime();
+
+    public static TimeSpan WindowsDoubleClickInterval =>
+        TimeSpan.FromMilliseconds(Math.Clamp(GetDoubleClickTime(), 100u, 2000u));
+
     /// <summary>
     /// Requests the DirectComposition compositor clock to run at its active
     /// cadence while a short interactive animation is in progress. This is a

@@ -38,6 +38,7 @@
     <Resource Language="ar-SA" />
     <Resource Language="bn-BD" />
     <Resource Language="ru-RU" />
+    <Resource Language="vi-VN" />
   </Resources>
 
   <Applications>

@@ -103,7 +103,21 @@ public sealed class DesktopOrganizationRuleResolver
             return 2;
         }
 
-        return rule.CategoryIds.Contains(item.CategoryId, StringComparer.Ordinal) ? 1 : 0;
+        if (rule.CategoryIds.Contains(item.CategoryId, StringComparer.Ordinal))
+        {
+            return 1;
+        }
+
+        // Preserve existing user rules created before the category/subtype
+        // expansion. Packages remains the compatibility umbrella for archive
+        // and installer subtypes, while new rules may target the subtype.
+        if (item.CategoryId == DesktopOrganizationCategoryIds.Packages &&
+            rule.CategoryIds.Contains(DesktopOrganizationCategoryIds.Packages, StringComparer.Ordinal))
+        {
+            return 1;
+        }
+
+        return 0;
     }
 
     private static HashSet<string> NormalizeExtensions(IEnumerable<string> extensions) =>

@@ -14,7 +14,7 @@ public sealed class DesktopOrganizationTests : IDisposable
     [InlineData("movie.mp4", DesktopOrganizationCategoryIds.Media, DesktopOrganizationSubtypeIds.Video)]
     [InlineData("music.flac", DesktopOrganizationCategoryIds.Media, DesktopOrganizationSubtypeIds.Audio)]
     [InlineData("app.lnk", DesktopOrganizationCategoryIds.Shortcuts, null)]
-    [InlineData("setup.msix", DesktopOrganizationCategoryIds.Packages, null)]
+    [InlineData("setup.msix", DesktopOrganizationCategoryIds.Packages, DesktopOrganizationSubtypeIds.Installer)]
     [InlineData("unknown.xyz", DesktopOrganizationCategoryIds.Other, null)]
     public void Classifier_UsesStableTypeIds(
         string fileName,
@@ -45,6 +45,23 @@ public sealed class DesktopOrganizationTests : IDisposable
         Assert.Empty(
             DesktopOrganizationClassifier.GetCategoryExtensions(
                 DesktopOrganizationCategoryIds.Other));
+    }
+
+    [Fact]
+    public void Classifier_SeparatesFoldersSystemLinksAndPackageSubtypes()
+    {
+        DesktopOrganizationClassification folder =
+            new DesktopOrganizationClassifier().Classify("Pictures", isDirectory: true);
+        DesktopOrganizationClassification systemLink =
+            new DesktopOrganizationClassifier().Classify(
+                "This PC.lnk",
+                isSystemLink: true);
+        DesktopOrganizationClassification archive =
+            new DesktopOrganizationClassifier().Classify("backup.zip");
+
+        Assert.Equal(DesktopOrganizationCategoryIds.Folders, folder.CategoryId);
+        Assert.Equal(DesktopOrganizationCategoryIds.SystemLinks, systemLink.CategoryId);
+        Assert.Equal(DesktopOrganizationSubtypeIds.Archive, archive.SubtypeId);
     }
 
     [Fact]
@@ -99,6 +116,53 @@ public sealed class DesktopOrganizationTests : IDisposable
         Assert.Equal(DesktopOrganizationScanner.SlowItemThresholdBytes, item.Size);
         Assert.Equal(DesktopOrganizationExclusionReason.None, item.ExclusionReason);
         Assert.Equal(1, result.EligibleCount);
+    }
+
+    [Fact]
+    public async Task Scanner_CanIncludeFoldersAndAdditionalRootsForReclassification()
+    {
+        Directory.CreateDirectory(_root);
+        string managedRoot = Directory.CreateDirectory(Path.Combine(_root, "managed-widget")).FullName;
+        Directory.CreateDirectory(Path.Combine(managedRoot, "nested-folder"));
+        File.WriteAllText(Path.Combine(managedRoot, "archive.zip"), "zip");
+
+        var scanner = new DesktopOrganizationScanner(
+            new DesktopOrganizationClassifier(),
+            () => _root,
+            () => string.Empty);
+
+        DesktopOrganizationScanResult result = await scanner.ScanAsync(
+            additionalRoots: [managedRoot],
+            includePublicDesktopItems: false,
+            includeFolders: true);
+
+        Assert.Contains(result.Items, item =>
+            item.Name == "nested-folder" &&
+            item.CategoryId == DesktopOrganizationCategoryIds.Folders &&
+            item.IsEligible);
+        Assert.Contains(result.Items, item =>
+            item.Name == "archive.zip" &&
+            item.CategoryId == DesktopOrganizationCategoryIds.Packages &&
+            item.SubtypeId == DesktopOrganizationSubtypeIds.Archive);
+    }
+
+    [Fact]
+    public void AutoOrganizationSnapshot_RecognizesDesktopFolderAsEligibleFolderCategory()
+    {
+        Directory.CreateDirectory(_root);
+        string folderPath = Directory.CreateDirectory(Path.Combine(_root, "new-folder")).FullName;
+        var scanner = new DesktopOrganizationScanner(
+            new DesktopOrganizationClassifier(),
+            () => _root,
+            () => string.Empty);
+
+        DesktopOrganizationFileSnapshot snapshot =
+            scanner.CreateAutoOrganizationSnapshot(folderPath);
+
+        Assert.True(snapshot.IsEligible);
+        Assert.Equal(DesktopOrganizationCategoryIds.Folders, snapshot.CategoryId);
+        Assert.Equal(string.Empty, snapshot.Extension);
+        Assert.NotEqual(DateTime.MinValue, snapshot.LastWriteTimeUtc);
     }
 
     [Fact]
@@ -383,6 +447,42 @@ public sealed class DesktopOrganizationTests : IDisposable
 
         Assert.True(File.Exists(sourceOne));
         Assert.True(File.Exists(sourceTwo));
+    }
+
+    [Fact]
+    public async Task Transaction_MovesFolderAfterScanWithoutTreatingItAsChanged()
+    {
+        string desktop = Directory.CreateDirectory(Path.Combine(_root, "folder-desktop")).FullName;
+        string storage = Directory.CreateDirectory(Path.Combine(_root, "folder-storage")).FullName;
+        string sourceFolder = Directory.CreateDirectory(Path.Combine(desktop, "new-folder")).FullName;
+        File.WriteAllText(Path.Combine(sourceFolder, "inside.txt"), "folder content");
+
+        var scanner = new DesktopOrganizationScanner(
+            new DesktopOrganizationClassifier(),
+            () => desktop,
+            () => string.Empty);
+        DesktopOrganizationScanResult scan = await scanner.ScanAsync(
+            includePublicDesktopItems: false,
+            includeFolders: true);
+        DesktopOrganizationFileSnapshot snapshot = Assert.Single(scan.Items);
+        Assert.NotEqual(DateTime.MinValue, snapshot.LastWriteTimeUtc);
+
+        DesktopOrganizationPlan plan = new DesktopOrganizationPlanner(
+            new DesktopOrganizationRuleResolver()).CreatePlan(
+            scan,
+            storage,
+            [],
+            [],
+            _ => "Folders");
+        var settings = new SettingsService(Path.Combine(_root, "folder-settings"));
+        var transaction = new DesktopOrganizationTransaction(settings, new FileService());
+
+        DesktopOrganizationExecutionResult result = await transaction.ExecuteAsync(plan);
+
+        string destinationFolder = Assert.Single(result.History.Items).DestinationPath;
+        Assert.False(Directory.Exists(sourceFolder));
+        Assert.True(Directory.Exists(destinationFolder));
+        Assert.True(File.Exists(Path.Combine(destinationFolder, "inside.txt")));
     }
 
     [Fact]

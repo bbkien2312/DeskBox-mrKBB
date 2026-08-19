@@ -19,6 +19,12 @@ public sealed class DesktopOrganizationClassifier
     private static readonly HashSet<string> PackageExtensions =
         CreateSet(".zip", ".7z", ".rar", ".tar", ".gz", ".bz2", ".xz", ".iso", ".exe", ".msi", ".msix", ".appx", ".appxbundle", ".msixbundle");
 
+    private static readonly HashSet<string> ArchiveExtensions =
+        CreateSet(".zip", ".7z", ".rar", ".tar", ".gz", ".bz2", ".xz", ".iso");
+
+    private static readonly HashSet<string> InstallerExtensions =
+        CreateSet(".exe", ".msi", ".msix", ".appx", ".appxbundle", ".msixbundle");
+
     private static readonly Dictionary<string, string> DocumentSubtypeByExtension =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -39,13 +45,26 @@ public sealed class DesktopOrganizationClassifier
             [".odp"] = DesktopOrganizationSubtypeIds.PowerPoint
         };
 
-    public DesktopOrganizationClassification Classify(string path)
+    public DesktopOrganizationClassification Classify(
+        string path,
+        bool isDirectory = false,
+        bool isSystemLink = false)
     {
+        if (isDirectory)
+        {
+            return new(DesktopOrganizationCategoryIds.Folders, null, string.Empty);
+        }
+
         string extension = NormalizeExtension(Path.GetExtension(path));
 
         if (ShortcutExtensions.Contains(extension))
         {
-            return new(DesktopOrganizationCategoryIds.Shortcuts, null, extension);
+            return new(
+                isSystemLink
+                    ? DesktopOrganizationCategoryIds.SystemLinks
+                    : DesktopOrganizationCategoryIds.Shortcuts,
+                null,
+                extension);
         }
 
         if (DocumentSubtypeByExtension.TryGetValue(extension, out string? documentSubtype))
@@ -70,7 +89,10 @@ public sealed class DesktopOrganizationClassifier
 
         if (PackageExtensions.Contains(extension))
         {
-            return new(DesktopOrganizationCategoryIds.Packages, null, extension);
+            string subtype = ArchiveExtensions.Contains(extension)
+                ? DesktopOrganizationSubtypeIds.Archive
+                : DesktopOrganizationSubtypeIds.Installer;
+            return new(DesktopOrganizationCategoryIds.Packages, subtype, extension);
         }
 
         return new(DesktopOrganizationCategoryIds.Other, null, extension);
@@ -84,6 +106,8 @@ public sealed class DesktopOrganizationClassifier
             DesktopOrganizationCategoryIds.Images => ImageExtensions.OrderBy(value => value).ToArray(),
             DesktopOrganizationCategoryIds.Media => AudioExtensions.Concat(VideoExtensions).OrderBy(value => value).ToArray(),
             DesktopOrganizationCategoryIds.Packages => PackageExtensions.OrderBy(value => value).ToArray(),
+            DesktopOrganizationCategoryIds.Folders => [],
+            DesktopOrganizationCategoryIds.SystemLinks => ShortcutExtensions.OrderBy(value => value).ToArray(),
             _ => []
         };
 
@@ -92,6 +116,8 @@ public sealed class DesktopOrganizationClassifier
         {
             DesktopOrganizationSubtypeIds.Audio => AudioExtensions.OrderBy(value => value).ToArray(),
             DesktopOrganizationSubtypeIds.Video => VideoExtensions.OrderBy(value => value).ToArray(),
+            DesktopOrganizationSubtypeIds.Archive => ArchiveExtensions.OrderBy(value => value).ToArray(),
+            DesktopOrganizationSubtypeIds.Installer => InstallerExtensions.OrderBy(value => value).ToArray(),
             _ => DocumentSubtypeByExtension
                 .Where(pair => string.Equals(pair.Value, subtypeId, StringComparison.Ordinal))
                 .Select(pair => pair.Key)

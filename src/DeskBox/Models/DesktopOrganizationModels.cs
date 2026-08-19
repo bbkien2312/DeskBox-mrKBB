@@ -7,6 +7,8 @@ public static class DesktopOrganizationCategoryIds
     public const string Images = "Images";
     public const string Media = "Media";
     public const string Packages = "Packages";
+    public const string Folders = "Folders";
+    public const string SystemLinks = "SystemLinks";
     public const string Other = "Other";
 
     public static readonly IReadOnlyList<string> DefaultOrder =
@@ -16,6 +18,8 @@ public static class DesktopOrganizationCategoryIds
         Images,
         Media,
         Packages,
+        Folders,
+        SystemLinks,
         Other
     ];
 }
@@ -29,6 +33,8 @@ public static class DesktopOrganizationSubtypeIds
     public const string Text = "Text";
     public const string Audio = "Audio";
     public const string Video = "Video";
+    public const string Archive = "Archive";
+    public const string Installer = "Installer";
 }
 
 /// <summary>

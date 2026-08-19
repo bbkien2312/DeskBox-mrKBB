@@ -42,6 +42,21 @@ public sealed class LocalizationServiceLanguageTests
         Assert.Contains(SettingsService.LanguageRussian, localization.AvailableLanguageSettings);
     }
 
+    [Fact]
+    public void VietnameseLocale_IsAvailableAndUsesAccentedCoreCopy()
+    {
+        var localization = TestServices.CreateLocalizationService(SettingsService.LanguageVietnamese);
+
+        Assert.Contains(SettingsService.LanguageVietnamese, localization.AvailableLanguageSettings);
+        Assert.Equal("vi", localization.ApiLanguageCode);
+        Assert.Equal("Tiếng Việt", localization.GetLanguageDisplayName(SettingsService.LanguageVietnamese));
+        Assert.Equal("Ngôn ngữ", localization.T("Settings.Language.Title"));
+        Assert.Equal("Tự động sắp xếp tệp và thư mục mới", localization.T("DesktopOrganization.Auto.Title"));
+        Assert.Equal("Thư mục", localization.T("DesktopOrganization.Category.Folders"));
+        Assert.Equal("Có thể sắp xếp {0} mục vào {1} box", localization.T("DesktopOrganization.Preview.Headline"));
+        Assert.Equal("Sắp xếp Desktop chưa hoàn tất", localization.T("DesktopOrganization.Result.FailedTitle"));
+    }
+
     [Theory]
     [MemberData(nameof(NewLanguages))]
     public void NewLocale_ResolvesApiCodeAndCoreCopy(string language, string apiCode)

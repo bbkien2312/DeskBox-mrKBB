@@ -30,6 +30,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
     private readonly CancellationTokenSource _lifetimeCts = new();
     private readonly SemaphoreSlim _retrySignal = new(0, int.MaxValue);
     private readonly FileSystemWatcher _watcher;
+    private readonly FileSystemWatcher? _publicWatcher;
     private readonly Func<DateTimeOffset> _utcNow;
     private readonly Func<TimeSpan, CancellationToken, Task> _delayAsync;
     private CancellationTokenSource _featureCts = new();
@@ -73,6 +74,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
 
         string desktopPath = desktopPathProvider?.Invoke() ??
             Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        string publicDesktopPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory);
         Directory.CreateDirectory(desktopPath);
         _scanner = new DesktopOrganizationScanner(
             new DesktopOrganizationClassifier(),
@@ -87,12 +89,50 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
             InternalBufferSize = WatcherBufferSizeBytes,
             EnableRaisingEvents = false
         };
-        _watcher.Created += OnCreatedOrChanged;
-        _watcher.Changed += OnCreatedOrChanged;
-        _watcher.Deleted += OnDeleted;
-        _watcher.Renamed += OnRenamed;
-        _watcher.Error += OnWatcherError;
+        ConfigureWatcher(_watcher);
+        if (!string.IsNullOrWhiteSpace(publicDesktopPath) &&
+            !string.Equals(
+                Path.GetFullPath(publicDesktopPath),
+                Path.GetFullPath(desktopPath),
+                StringComparison.OrdinalIgnoreCase) &&
+            Directory.Exists(publicDesktopPath))
+        {
+            _publicWatcher = new FileSystemWatcher(publicDesktopPath)
+            {
+                IncludeSubdirectories = false,
+                NotifyFilter = _watcher.NotifyFilter,
+                InternalBufferSize = WatcherBufferSizeBytes,
+                EnableRaisingEvents = false
+            };
+            ConfigureWatcher(_publicWatcher);
+        }
         _settingsService.SettingsChanged += OnSettingsChanged;
+    }
+
+    private void ConfigureWatcher(FileSystemWatcher watcher)
+    {
+        watcher.Created += OnCreatedOrChanged;
+        watcher.Changed += OnCreatedOrChanged;
+        watcher.Deleted += OnDeleted;
+        watcher.Renamed += OnRenamed;
+        watcher.Error += OnWatcherError;
+    }
+
+    private IEnumerable<FileSystemWatcher> AllWatchers()
+    {
+        yield return _watcher;
+        if (_publicWatcher is not null)
+        {
+            yield return _publicWatcher;
+        }
+    }
+
+    private void SetWatchersEnabled(bool enabled)
+    {
+        foreach (FileSystemWatcher watcher in AllWatchers())
+        {
+            watcher.EnableRaisingEvents = enabled;
+        }
     }
 
     public void Start()
@@ -103,7 +143,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
         if (!_lastEnabled)
         {
             _featureCts.Cancel();
-            _watcher.EnableRaisingEvents = false;
+            SetWatchersEnabled(false);
             return;
         }
 
@@ -122,6 +162,35 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
         }
         _states.ResumeDeferred(_utcNow());
         SignalRetryPump();
+    }
+
+    /// <summary>
+    /// Queues the current Desktop contents for the same classifier/rules used
+    /// by the live watcher. This is intentionally opt-in because it can move
+    /// existing items; the normal Start baseline still remains non-destructive.
+    /// </summary>
+    public void QueueExistingDesktopItems()
+    {
+        ThrowIfDisposed();
+        if (!_settingsService.Settings.DesktopAutoOrganizationEnabled)
+        {
+            return;
+        }
+
+        if (!TryCaptureCompleteDirectory(out HashSet<string> paths, out Exception? error))
+        {
+            if (error is not null)
+            {
+                App.Log($"[DesktopAutoOrganization][WARNING] Startup scan skipped: {error.Message}");
+            }
+            return;
+        }
+
+        App.Log($"[DesktopAutoOrganization][INFO] Startup reorganization queued items={paths.Count}");
+        foreach (string path in paths)
+        {
+            Queue(path, bypassBaseline: true);
+        }
     }
 
     private void OnSettingsChanged()
@@ -162,7 +231,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
 
     private void DisableFeature()
     {
-        _watcher.EnableRaisingEvents = false;
+        SetWatchersEnabled(false);
         _featureCts.Cancel();
         _states.SuspendRecoverableItems();
         Interlocked.Exchange(ref _watcherRecoveryAttempts, 0);
@@ -173,7 +242,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
     {
         try
         {
-            _watcher.EnableRaisingEvents = true;
+            SetWatchersEnabled(true);
         }
         catch (Exception ex)
         {
@@ -326,12 +395,15 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
         {
             // GetFileSystemEntries materializes the full enumeration. If any
             // part fails, no partial result is committed.
-            foreach (string path in Directory.GetFileSystemEntries(
-                         _watcher.Path,
-                         "*",
-                         SearchOption.TopDirectoryOnly))
+            foreach (FileSystemWatcher watcher in AllWatchers())
             {
-                paths.Add(Path.GetFullPath(path));
+                foreach (string path in Directory.GetFileSystemEntries(
+                             watcher.Path,
+                             "*",
+                             SearchOption.TopDirectoryOnly))
+                {
+                    paths.Add(Path.GetFullPath(path));
+                }
             }
 
             return true;
@@ -427,8 +499,8 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
 
                 try
                 {
-                    _watcher.EnableRaisingEvents = false;
-                    _watcher.EnableRaisingEvents = true;
+                    SetWatchersEnabled(false);
+                    SetWatchersEnabled(true);
                     // Compare against the last complete baseline so only files
                     // from the unhealthy window are queued.
                     if (!ReconcileBaselinePair(BaselineReconciliationMode.SincePreviousBaseline))
@@ -454,7 +526,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
             Volatile.Write(ref _watcherRecoveryScheduled, 0);
             if (!_disposed &&
                 _settingsService.Settings.DesktopAutoOrganizationEnabled &&
-                !_watcher.EnableRaisingEvents)
+                AllWatchers().Any(watcher => !watcher.EnableRaisingEvents))
             {
                 ScheduleWatcherRecovery();
             }
@@ -525,7 +597,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
                 DesktopAutoOrganizationItemState excludedState =
                     DesktopAutoOrganizationStatePolicy.ForSnapshotExclusion(
                         item.ExclusionReason,
-                        File.Exists(workItem.Path));
+                        EntryExists(workItem.Path));
                 if (excludedState == DesktopAutoOrganizationItemState.Deferred)
                 {
                     Defer(workItem, DesktopAutoOrganizationRetryKind.Finite);
@@ -600,17 +672,17 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
                     return;
                 }
 
-                if (!File.Exists(workItem.Path))
+                if (!EntryExists(workItem.Path))
                 {
                     MarkMissing(workItem);
                     return;
                 }
 
-                if (!TryCaptureFileFingerprint(
+                if (!TryCapturePathFingerprint(
                         workItem.Path,
                         out StableFileFingerprint currentFingerprint))
                 {
-                    if (File.Exists(workItem.Path))
+                    if (EntryExists(workItem.Path))
                     {
                         Defer(workItem, DesktopAutoOrganizationRetryKind.Persistent);
                     }
@@ -684,7 +756,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
             // Settle-phase work was already preserved by DisableFeature. A
             // cancellation after entering Processing but before the actual move
             // must also become recoverable instead of sticking in Processing.
-            if (!moveSucceeded && File.Exists(workItem.Path))
+            if (!moveSucceeded && EntryExists(workItem.Path))
             {
                 Defer(workItem, DesktopAutoOrganizationRetryKind.Persistent);
             }
@@ -700,7 +772,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
             // desktop item recoverable instead of consuming the finite
             // metadata retry budget and silently turning it into Ignored.
             App.Log($"[DesktopAutoOrganization] Storage unavailable for '{workItem.Path}': {ex}");
-            if (File.Exists(workItem.Path))
+            if (EntryExists(workItem.Path))
             {
                 Defer(workItem, DesktopAutoOrganizationRetryKind.Persistent);
             }
@@ -714,7 +786,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
             // Permission changes on the source or mapped target are also
             // recoverable and should be retried after access is restored.
             App.Log($"[DesktopAutoOrganization] Access unavailable for '{workItem.Path}': {ex}");
-            if (File.Exists(workItem.Path))
+            if (EntryExists(workItem.Path))
             {
                 Defer(workItem, DesktopAutoOrganizationRetryKind.Persistent);
             }
@@ -733,7 +805,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
                     DesktopAutoOrganizationItemState.Completed);
                 RemoveFromBaseline(workItem.Path);
             }
-            else if (!File.Exists(workItem.Path))
+            else if (!EntryExists(workItem.Path))
             {
                 MarkMissing(workItem);
             }
@@ -752,14 +824,14 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
         int stableMatches = 0;
         for (int probe = 0; probe < StableProbeCount; probe++)
         {
-            if (!File.Exists(path) || Directory.Exists(path))
+            if (!EntryExists(path))
             {
                 return StableFileProbeResult.Missing;
             }
 
             try
             {
-                if (!TryCaptureFileFingerprint(path, out StableFileFingerprint fingerprint))
+                if (!TryCapturePathFingerprint(path, out StableFileFingerprint fingerprint))
                 {
                     previous = null;
                     await _delayAsync(StabilityProbeDelay, cancellationToken);
@@ -796,7 +868,7 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
             await _delayAsync(StabilityProbeDelay, cancellationToken);
         }
 
-        return File.Exists(path)
+        return EntryExists(path)
             ? StableFileProbeResult.Deferred
             : StableFileProbeResult.Missing;
     }
@@ -835,13 +907,24 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
         _activityTracker.Observe(path, _utcNow());
     }
 
-    private static bool TryCaptureFileFingerprint(
+    private static bool TryCapturePathFingerprint(
         string path,
         out StableFileFingerprint fingerprint)
     {
         fingerprint = default;
         try
         {
+            if (Directory.Exists(path))
+            {
+                var directory = new DirectoryInfo(path);
+                fingerprint = new StableFileFingerprint(
+                    0,
+                    directory.LastWriteTimeUtc,
+                    directory.CreationTimeUtc,
+                    TryGetDirectoryIdentity(path));
+                return true;
+            }
+
             using var stream = new FileStream(
                 path,
                 FileMode.Open,
@@ -867,6 +950,38 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
         }
     }
 
+    private static FileIdentity? TryGetDirectoryIdentity(string path)
+    {
+        try
+        {
+            using SafeFileHandle handle = CreateFileForDirectoryIdentity(path);
+            return handle.IsInvalid ||
+                   !GetFileInformationByHandle(handle, out ByHandleFileInformation information)
+                ? null
+                : new FileIdentity(
+                    information.VolumeSerialNumber,
+                    ((ulong)information.FileIndexHigh << 32) | information.FileIndexLow);
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static SafeFileHandle CreateFileForDirectoryIdentity(string path) =>
+        CreateFile(
+            path,
+            0,
+            FileShareRead | FileShareWrite | FileShareDelete,
+            IntPtr.Zero,
+            OpenExisting,
+            FileFlagBackupSemantics,
+            IntPtr.Zero);
+
     private static FileIdentity? TryGetFileIdentity(SafeFileHandle handle)
     {
         return GetFileInformationByHandle(handle, out ByHandleFileInformation information)
@@ -875,6 +990,25 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
                 ((ulong)information.FileIndexHigh << 32) | information.FileIndexLow)
             : null;
     }
+
+    private static bool EntryExists(string path) =>
+        File.Exists(path) || Directory.Exists(path);
+
+    private const uint FileShareRead = 0x00000001;
+    private const uint FileShareWrite = 0x00000002;
+    private const uint FileShareDelete = 0x00000004;
+    private const uint OpenExisting = 3;
+    private const uint FileFlagBackupSemantics = 0x02000000;
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern SafeFileHandle CreateFile(
+        string lpFileName,
+        uint dwDesiredAccess,
+        uint dwShareMode,
+        IntPtr lpSecurityAttributes,
+        uint dwCreationDisposition,
+        uint dwFlagsAndAttributes,
+        IntPtr hTemplateFile);
 
     private void MarkIgnored(DesktopAutoOrganizationWorkItem workItem)
     {
@@ -1006,13 +1140,16 @@ public sealed class DesktopAutoOrganizationWatcher : IDisposable
         _featureCts.Cancel();
         _lifetimeCts.Cancel();
         _settingsService.SettingsChanged -= OnSettingsChanged;
-        _watcher.EnableRaisingEvents = false;
-        _watcher.Created -= OnCreatedOrChanged;
-        _watcher.Changed -= OnCreatedOrChanged;
-        _watcher.Deleted -= OnDeleted;
-        _watcher.Renamed -= OnRenamed;
-        _watcher.Error -= OnWatcherError;
-        _watcher.Dispose();
+        foreach (FileSystemWatcher watcher in AllWatchers())
+        {
+            watcher.EnableRaisingEvents = false;
+            watcher.Created -= OnCreatedOrChanged;
+            watcher.Changed -= OnCreatedOrChanged;
+            watcher.Deleted -= OnDeleted;
+            watcher.Renamed -= OnRenamed;
+            watcher.Error -= OnWatcherError;
+            watcher.Dispose();
+        }
         // RetryPump may still be unwinding its canceled semaphore wait. The
         // managed semaphore is intentionally left for GC to avoid dispose races.
         _featureCts.Dispose();

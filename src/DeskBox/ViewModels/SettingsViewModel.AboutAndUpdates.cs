@@ -1,4 +1,3 @@
-using System.Reflection;
 using DeskBox.Models;
 using DeskBox.Services;
 using Microsoft.UI.Xaml;
@@ -7,13 +6,24 @@ namespace DeskBox.ViewModels;
 
 public partial class SettingsViewModel
 {
-    public string AppVersion =>
-        Assembly.GetExecutingAssembly()
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-            ?.InformationalVersion
-            .Split('+')[0] ??
-        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ??
-        "1.0.2";
+    public string AppVersion => AppBuildMetadata.ForkDisplayVersion;
+    public string ForkVersion => AppBuildMetadata.ForkVersion;
+    public string UpstreamVersion => AppBuildMetadata.UpstreamVersion;
+    public string UpstreamCommit => AppBuildMetadata.UpstreamCommit;
+    public string ForkCommit => AppBuildMetadata.ForkCommit;
+    public string BuildNumber => AppBuildMetadata.BuildNumber;
+    public string BuildMetadataText => _localizationService.Format(
+        "Settings.About.BuildMetadata",
+        AppBuildMetadata.ForkDisplayVersion,
+        AppBuildMetadata.UpstreamVersion,
+        AppBuildMetadata.BuildNumber);
+    public string UpstreamCommitText => _localizationService.Format(
+        "Settings.About.UpstreamCommit",
+        AppBuildMetadata.UpstreamCommit);
+    public string ForkCommitText => _localizationService.Format(
+        "Settings.About.ForkCommit",
+        AppBuildMetadata.ForkCommit);
+    public string UpdateChannelText => "DeskBox Fork · bbkien2312/DeskBox-mrKBB";
     public string DistributionChannelText => _localizationService.T(IsStoreUpdateDelivery
         ? "Settings.About.Channel.Store"
         : "Settings.About.Channel.Direct");
@@ -170,7 +180,9 @@ public partial class SettingsViewModel
 
         try
         {
-            var result = await _appUpdateService.CheckForUpdatesAsync(AppVersion, _updateOperationCts.Token);
+            var result = await _appUpdateService.CheckForUpdatesAsync(
+                AppBuildMetadata.ForkVersion,
+                _updateOperationCts.Token);
             _settingsService.Settings.LastUpdateCheckAt = DateTimeOffset.Now;
             _settingsService.SaveDebounced(notifySubscribers: false);
             ApplyUpdateCheckResult(result);

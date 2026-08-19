@@ -1,3 +1,4 @@
+using DeskBox.Helpers;
 using DeskBox.Models;
 
 namespace DeskBox.Services;
@@ -43,36 +44,59 @@ public sealed class DesktopOrganizationScanner
 
     public Task<DesktopOrganizationScanResult> ScanAsync(
         bool includeSlowItems = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IEnumerable<string>? additionalRoots = null,
+        bool includePublicDesktopItems = true,
+        bool includeFolders = false)
     {
-        return Task.Run(() => Scan(includeSlowItems, cancellationToken), cancellationToken);
+        string[] roots = additionalRoots?
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(Path.GetFullPath)
+            .ToArray() ?? [];
+        return Task.Run(
+            () => Scan(includeSlowItems, cancellationToken, roots, includePublicDesktopItems, includeFolders),
+            cancellationToken);
     }
 
     internal DesktopOrganizationFileSnapshot CreateAutoOrganizationSnapshot(string path) =>
         CreateSnapshot(
             path,
-            NormalizeOptionalPath(_publicDesktopPathProvider()),
-            includeSlowItems: false);
+            includeSlowItems: false,
+            includeFolders: true);
 
-    private DesktopOrganizationScanResult Scan(bool includeSlowItems, CancellationToken cancellationToken)
+    private DesktopOrganizationScanResult Scan(
+        bool includeSlowItems,
+        CancellationToken cancellationToken,
+        IReadOnlyCollection<string> additionalRoots,
+        bool includePublicDesktopItems,
+        bool includeFolders)
     {
         string desktopPath = Path.GetFullPath(_desktopPathProvider());
         string publicDesktopPath = NormalizeOptionalPath(_publicDesktopPathProvider());
         var items = new List<DesktopOrganizationFileSnapshot>();
 
-        if (!Directory.Exists(desktopPath))
+        var roots = new List<string>();
+        if (Directory.Exists(desktopPath))
         {
-            return new DesktopOrganizationScanResult
-            {
-                DesktopPath = desktopPath,
-                Items = items
-            };
+            roots.Add(desktopPath);
+        }
+        if (includePublicDesktopItems &&
+            !string.IsNullOrWhiteSpace(publicDesktopPath) &&
+            !roots.Contains(publicDesktopPath, StringComparer.OrdinalIgnoreCase))
+        {
+            roots.Add(publicDesktopPath);
         }
 
-        foreach (string path in Directory.EnumerateFileSystemEntries(desktopPath, "*", SearchOption.TopDirectoryOnly))
+        foreach (string root in additionalRoots
+                     .Concat(roots)
+                     .Where(Directory.Exists)
+                     .Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            items.Add(CreateSnapshot(path, publicDesktopPath, includeSlowItems));
+            foreach (string path in Directory.EnumerateFileSystemEntries(root, "*", SearchOption.TopDirectoryOnly))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                items.Add(CreateSnapshot(path, includeSlowItems, includeFolders));
+            }
         }
 
         if (!includeSlowItems)
@@ -117,26 +141,29 @@ public sealed class DesktopOrganizationScanner
 
     private DesktopOrganizationFileSnapshot CreateSnapshot(
         string path,
-        string publicDesktopPath,
-        bool includeSlowItems)
+        bool includeSlowItems,
+        bool includeFolders)
     {
         string fullPath = Path.GetFullPath(path);
         string name = Path.GetFileName(fullPath);
-        var classification = _classifier.Classify(fullPath);
         long size = 0;
         DateTime lastWriteTimeUtc = DateTime.MinValue;
+        DesktopOrganizationClassification classification =
+            new(DesktopOrganizationCategoryIds.Other, null, string.Empty);
         DesktopOrganizationExclusionReason reason;
 
         try
         {
             FileAttributes attributes = File.GetAttributes(fullPath);
             bool isDirectory = (attributes & FileAttributes.Directory) != 0;
+            bool isSystemLink = !isDirectory && IsSystemLink(fullPath);
+            classification = _classifier.Classify(fullPath, isDirectory, isSystemLink);
             bool isHiddenOrSystem = (attributes & (FileAttributes.Hidden | FileAttributes.System)) != 0 ||
                                     name.Equals("desktop.ini", StringComparison.OrdinalIgnoreCase);
             bool isTemporary = (attributes & FileAttributes.Temporary) != 0 ||
                                HasTemporarySuffix(name);
 
-            reason = isDirectory
+            reason = isDirectory && !includeFolders
                 ? DesktopOrganizationExclusionReason.Folder
                 : isHiddenOrSystem
                     ? DesktopOrganizationExclusionReason.HiddenOrSystem
@@ -146,9 +173,7 @@ public sealed class DesktopOrganizationScanner
                             ? DesktopOrganizationExclusionReason.OfflinePlaceholder
                             : isTemporary
                                 ? DesktopOrganizationExclusionReason.TemporaryOrDownloading
-                                : IsUnderPath(fullPath, publicDesktopPath)
-                                    ? DesktopOrganizationExclusionReason.PublicDesktopItem
-                                    : DesktopOrganizationExclusionReason.None;
+                                : DesktopOrganizationExclusionReason.None;
 
             if (!isDirectory)
             {
@@ -161,6 +186,11 @@ public sealed class DesktopOrganizationScanner
                 {
                     reason = DesktopOrganizationExclusionReason.SlowItem;
                 }
+            }
+            else
+            {
+                var directory = new DirectoryInfo(fullPath);
+                lastWriteTimeUtc = directory.LastWriteTimeUtc;
             }
         }
         catch
@@ -177,6 +207,27 @@ public sealed class DesktopOrganizationScanner
             classification.CategoryId,
             classification.SubtypeId,
             reason);
+    }
+
+    private static bool IsSystemLink(string path)
+    {
+        string extension = DesktopOrganizationClassifier.NormalizeExtension(Path.GetExtension(path));
+        if (extension is not ".lnk" and not ".url" and not ".appref-ms")
+        {
+            return false;
+        }
+
+        try
+        {
+            string? target = ShortcutHelper.Resolve(path)?.TargetPath;
+            return !string.IsNullOrWhiteSpace(target) &&
+                   (target.StartsWith("shell:", StringComparison.OrdinalIgnoreCase) ||
+                    target.StartsWith("::{", StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool HasTemporarySuffix(string name) =>

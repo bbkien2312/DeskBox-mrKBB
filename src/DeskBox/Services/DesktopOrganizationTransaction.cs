@@ -9,15 +9,18 @@ public sealed class DesktopOrganizationTransaction
     private readonly SettingsService _settingsService;
     private readonly FileService _fileService;
     private readonly DesktopOrganizationRecoveryStore _recoveryStore;
+    private readonly DesktopOrganizationLogService _log;
 
     public DesktopOrganizationTransaction(
         SettingsService settingsService,
         FileService fileService,
-        DesktopOrganizationRecoveryStore? recoveryStore = null)
+        DesktopOrganizationRecoveryStore? recoveryStore = null,
+        DesktopOrganizationLogService? log = null)
     {
         _settingsService = settingsService;
         _fileService = fileService;
         _recoveryStore = recoveryStore ?? new DesktopOrganizationRecoveryStore();
+        _log = log ?? new DesktopOrganizationLogService();
     }
 
     public async Task<DesktopOrganizationExecutionResult> ExecuteAsync(
@@ -35,9 +38,15 @@ public sealed class DesktopOrganizationTransaction
         await OperationGate.WaitAsync(cancellationToken);
         try
         {
+            _log.Info(
+                "ExecuteStarted",
+                $"plan={plan.Id}; items={plan.EligibleItemCount}; targets={plan.Targets.Count}");
+            plan = RevalidateSources(plan);
             ValidatePlan(plan);
-            RevalidateSources(plan);
             ValidateAvailableSpace(plan);
+            _log.Ok(
+                "PreflightOk",
+                $"items={plan.EligibleItemCount}; targets={plan.Targets.Count}");
 
             var settings = _settingsService.Settings;
             var originalWidgets = settings.Widgets.ToList();
@@ -78,6 +87,9 @@ public sealed class DesktopOrganizationTransaction
                     journalItem.Completed = true;
                     await _recoveryStore.SaveAsync(journal);
                     completedCount++;
+                    _log.Ok(
+                        "MoveCompleted",
+                        $"{completedCount}/{journal.Items.Count}; source={journalItem.SourcePath}; destination={journalItem.DestinationPath}");
                     DesktopOrganizationTargetPlan? progressTarget = plan.Targets.FirstOrDefault(
                         target => string.Equals(
                             target.TargetWidgetId,
@@ -102,6 +114,9 @@ public sealed class DesktopOrganizationTransaction
 
                 await _settingsService.SaveAsync(notifySubscribers: false);
                 _recoveryStore.Clear();
+                _log.Ok(
+                    "ExecuteCompleted",
+                    $"plan={plan.Id}; items={journal.Items.Count}; targets={plan.Targets.Count}");
 
                 return new DesktopOrganizationExecutionResult
                 {
@@ -109,8 +124,9 @@ public sealed class DesktopOrganizationTransaction
                     CreatedWidgets = createdWidgets
                 };
             }
-            catch
+            catch (Exception ex)
             {
+                _log.Error("ExecuteFailed", ex.ToString());
                 settings.Widgets = originalWidgets;
                 settings.DesktopOrganizationRules = originalRules;
                 settings.RecentOrganizationHistory = originalHistory;
@@ -120,9 +136,20 @@ public sealed class DesktopOrganizationTransaction
                 if (rolledBack)
                 {
                     _recoveryStore.Clear();
+                    _log.Ok("RollbackCompleted", $"moves={completedMoves.Count}");
+                }
+                else if (completedMoves.Count > 0)
+                {
+                    _log.Warning("RollbackIncomplete", $"moves={completedMoves.Count}");
                 }
                 throw;
             }
+
+        }
+        catch (Exception ex)
+        {
+            _log.Error("ExecuteAborted", ex.ToString());
+            throw;
         }
         finally
         {
@@ -141,7 +168,7 @@ public sealed class DesktopOrganizationTransaction
         int restored = 0;
         foreach (DesktopOrganizationRecoveryItem item in journal.Items.AsEnumerable().Reverse())
         {
-            if (!File.Exists(item.DestinationPath))
+            if (!PathExists(item.DestinationPath))
             {
                 continue;
             }
@@ -250,19 +277,78 @@ public sealed class DesktopOrganizationTransaction
         }
     }
 
-    private static void RevalidateSources(DesktopOrganizationPlan plan)
+    private DesktopOrganizationPlan RevalidateSources(DesktopOrganizationPlan plan)
     {
+        var changedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (DesktopOrganizationFileSnapshot item in plan.Targets.SelectMany(target => target.Items))
         {
-            var file = new FileInfo(item.SourcePath);
-            if (!file.Exists ||
-                file.Length != item.Size ||
-                file.LastWriteTimeUtc != item.LastWriteTimeUtc)
+            try
             {
-                throw new IOException($"The desktop item changed after it was scanned: {item.Name}");
+                FileSystemInfo source = Directory.Exists(item.SourcePath)
+                    ? new DirectoryInfo(item.SourcePath)
+                    : new FileInfo(item.SourcePath);
+                source.Refresh();
+                bool sizeChanged = source is FileInfo fileInfo && fileInfo.Length != item.Size;
+                bool timestampChanged = source.Exists && source.LastWriteTimeUtc != item.LastWriteTimeUtc;
+                if (!source.Exists || sizeChanged || timestampChanged)
+                {
+                    string actualState = !source.Exists
+                        ? "missing"
+                        : $"size={GetSize(source)}; lastWriteUtc={source.LastWriteTimeUtc:O}";
+                    _log.Warning(
+                        "SourceChangedAfterScan",
+                        $"name={item.Name}; expectedSize={item.Size}; expectedLastWriteUtc={item.LastWriteTimeUtc:O}; actual={actualState}",
+                        item);
+                    changedPaths.Add(item.SourcePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Warning("SourceRevalidationError", $"name={item.Name}; {ex.Message}", item);
+                changedPaths.Add(item.SourcePath);
             }
         }
+
+        if (changedPaths.Count == 0)
+        {
+            _log.Ok("SourceRevalidationOk", $"items={plan.EligibleItemCount}");
+            return plan;
+        }
+
+        var skippedItems = plan.Targets
+            .SelectMany(target => target.Items)
+            .Where(item => changedPaths.Contains(item.SourcePath))
+            .ToList();
+        var filteredTargets = plan.Targets
+            .Select(target => target.CloneWith(
+                target.TargetWidgetId,
+                target.SuggestedDisplayName,
+                target.TargetDirectoryPath,
+                target.CreatesWidget,
+                target.Items.Where(item => !changedPaths.Contains(item.SourcePath))))
+            .Where(target => target.Items.Count > 0)
+            .ToList();
+
+        _log.Warning(
+            "ChangedItemsSkipped",
+            $"skipped={skippedItems.Count}; remaining={filteredTargets.Sum(target => target.Items.Count)}");
+        return new DesktopOrganizationPlan
+        {
+            Id = plan.Id,
+            DesktopPath = plan.DesktopPath,
+            StorageRootPath = plan.StorageRootPath,
+            Targets = filteredTargets,
+            ExcludedItems = plan.ExcludedItems
+                .Concat(skippedItems.Select(item => item with
+                {
+                    ExclusionReason = DesktopOrganizationExclusionReason.Unavailable
+                }))
+                .ToList()
+        };
     }
+
+    private static long GetSize(FileSystemInfo source) =>
+        source is FileInfo fileInfo ? fileInfo.Length : 0;
 
     private List<WidgetConfig> CreateCandidateWidgets(
         DesktopOrganizationPlan plan,
@@ -381,7 +467,7 @@ public sealed class DesktopOrganizationTransaction
         bool succeeded = true;
         foreach (FileService.FileTransferResult move in completedMoves.Reverse())
         {
-            if (!File.Exists(move.DestinationPath))
+            if (!PathExists(move.DestinationPath))
             {
                 continue;
             }
@@ -421,4 +507,6 @@ public sealed class DesktopOrganizationTransaction
             }
         }
     }
+
+    private static bool PathExists(string path) => File.Exists(path) || Directory.Exists(path);
 }

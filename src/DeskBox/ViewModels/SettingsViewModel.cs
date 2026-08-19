@@ -50,7 +50,7 @@ public partial class SettingsViewModel : ObservableObject, IDisposable
     private const string WeatherLocationModeAuto = "Auto";
     private const string WeatherLocationModeManual = "Manual";
     private const string FeedbackEmail = "1047078635@qq.com";
-    private const string RepositoryUrl = "https://github.com/Tianyu199509/DeskBox";
+    private const string RepositoryUrl = "https://github.com/bbkien2312/DeskBox-mrKBB";
     private const string OfficialWebsiteUrl = "https://deskbox.fun";
     private const string MicrosoftStoreProductId = "9PBZSNB4D69H";
     private const string MicrosoftStoreUrl = "https://apps.microsoft.com/store/detail/" + MicrosoftStoreProductId;
@@ -169,6 +169,8 @@ private string[]? _cachedWeatherRefreshIntervalDisplayNames;
     [ObservableProperty] private bool _autoStart;
     [ObservableProperty] private bool _autoCheckForUpdates = true;
     [ObservableProperty] private bool _doubleClickToOpen;
+    [ObservableProperty] private bool _restoreManagedContentsOnExit = true;
+    [ObservableProperty] private bool _reorganizeManagedContentsOnStartup = true;
     [ObservableProperty] private double _defaultWidth;
     [ObservableProperty] private double _defaultHeight;
     [ObservableProperty] private bool _hideShortcutArrowOverlay;
@@ -265,6 +267,8 @@ private string[]? _cachedWeatherRefreshIntervalDisplayNames;
         _autoStart = StartupService.IsEnabled();
         _autoCheckForUpdates = settings.AutoCheckForUpdates;
         _doubleClickToOpen = settings.DoubleClickToOpen;
+        _restoreManagedContentsOnExit = settings.RestoreManagedContentsOnExit;
+        _reorganizeManagedContentsOnStartup = settings.ReorganizeManagedContentsOnStartup;
         _selectedFileWidgetFolderOpenBehavior =
             FileWidgetFolderOpenBehaviorNames.NormalizeGlobal(
                 settings.FileWidgetFolderOpenBehavior);

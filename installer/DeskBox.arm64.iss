@@ -3,14 +3,17 @@
 ; dotnet publish ..\src\DeskBox\DeskBox.csproj --configuration Release -p:Platform=ARM64 -p:RuntimeIdentifier=win-arm64 -p:SelfContained=false -p:WindowsAppSDKSelfContained=false -o ..\artifacts\publish\DeskBox\arm64 -v:minimal
 
 #define MyAppName "DeskBox"
-#define MyAppVersion "1.4.2"
-#define MyAppVersionInfo "1.4.2.0"
+#define MyAppVersion "1.4.2.1"
+#define MyAppVersionInfo "1.4.2.1"
 #define MyAppPublisher "朱天雨"
 #define MyAppExeName "DeskBox.exe"
 #define MyAppOutputBaseName "DeskBox_Setup"
 #define MyAppRuntimeArchitecture "ARM64"
 #ifndef MyAppReleaseDir
 #define MyAppReleaseDir "..\artifacts\publish\DeskBox\arm64"
+#endif
+#ifndef MyAppOutputDir
+#define MyAppOutputDir "..\Output"
 #endif
 
 [Setup]
@@ -37,7 +40,7 @@ UsePreviousPrivileges=no
 CloseApplications=force
 CloseApplicationsFilter={#MyAppExeName}
 RestartApplications=no
-OutputDir=..\Output
+OutputDir={#MyAppOutputDir}
 OutputBaseFilename={#MyAppOutputBaseName}_{#MyAppVersion}_arm64
 SetupIconFile=..\src\DeskBox\Assets\deskbox.ico
 VersionInfoVersion={#MyAppVersionInfo}

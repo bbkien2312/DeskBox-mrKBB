@@ -72,15 +72,15 @@ public static class FileItemDragPackage
         // broker can deadlock the drag/drop message loop. Shortcuts already
         // have a streamed provider that does not need the broker; choose it
         // before attempting any synchronous StorageItems lookup.
-        bool usesVirtualStorageItems =
-            VirtualShortcutDragProvider.RequiresStorageBrokerBypass(
+        bool usesVirtualStorageItems = false;
+        IReadOnlyList<IStorageItem> storageItems = [];
+        if (VirtualShortcutDragProvider.RequiresStorageBrokerBypass(
                 sourcePaths) &&
             VirtualShortcutDragProvider.TryAttach(
                 dataPackage,
-                sourcePaths);
-        IReadOnlyList<IStorageItem> storageItems = [];
-        if (usesVirtualStorageItems)
+                sourcePaths))
         {
+            usesVirtualStorageItems = true;
             App.LogVerbose(
                 $"[DragStart] Bypassed WinRT StorageItems broker for " +
                 $"virtual shortcuts paths={sourcePaths.Length}");
@@ -88,7 +88,27 @@ public static class FileItemDragPackage
         else
         {
             storageItems = getStorageItems(sourcePaths);
-            if (storageItems.Count > 0)
+            if (storageItems.Count == sourcePaths.Length)
+            {
+                dataPackage.SetStorageItems(storageItems, readOnly: false);
+            }
+            else if (VirtualShortcutDragProvider.CanProvide(sourcePaths) &&
+                     VirtualShortcutDragProvider.TryAttach(
+                         dataPackage,
+                         sourcePaths))
+            {
+                // Some .lnk files are readable from the filesystem but are
+                // rejected by the WinRT broker. Explorer needs a complete
+                // StorageItems payload for a direct drop into another folder;
+                // path metadata alone only works with DeskBox's Desktop
+                // fallback path.
+                usesVirtualStorageItems = true;
+                App.LogVerbose(
+                    $"[DragStart] Fell back to virtual shortcut " +
+                    $"StorageItems paths={sourcePaths.Length} " +
+                    $"brokerItems={storageItems.Count}");
+            }
+            else if (storageItems.Count > 0)
             {
                 dataPackage.SetStorageItems(storageItems, readOnly: false);
             }

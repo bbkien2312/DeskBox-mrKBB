@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http.Headers;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -12,9 +11,12 @@ namespace DeskBox.Services;
 
 public sealed class AppUpdateService : IAppUpdateService
 {
-    public const string DefaultManifestUrl = "https://deskbox.fun/update/stable.json";
-    public const string DefaultGitHubLatestReleaseApiUrl = "https://api.github.com/repos/Tianyu199509/DeskBox/releases/latest";
-    public const string DefaultManualDownloadUrl = "https://deskbox.fun/download";
+    // Production builds update from the fork channel only. The upstream
+    // repository is a development input and is intentionally not queried by
+    // the installed app.
+    public const string DefaultManifestUrl = "https://raw.githubusercontent.com/bbkien2312/DeskBox-mrKBB/main/release/stable.json";
+    public const string DefaultGitHubLatestReleaseApiUrl = "https://api.github.com/repos/bbkien2312/DeskBox-mrKBB/releases/latest";
+    public const string DefaultManualDownloadUrl = "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest";
 
     private static readonly JsonSerializerOptions s_jsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -102,7 +104,8 @@ public sealed class AppUpdateService : IAppUpdateService
                     "The update manifest is missing installer metadata for this processor architecture.");
             }
 
-            return IsRemoteVersionNewer(currentVersion, manifest.Version)
+            string remoteVersion = GetComparableManifestVersion(manifest);
+            return IsRemoteVersionNewer(currentVersion, remoteVersion)
                 ? new AppUpdateCheckResult(AppUpdateCheckStatus.UpdateAvailable, currentVersion, manifest)
                 : new AppUpdateCheckResult(AppUpdateCheckStatus.UpToDate, currentVersion, manifest);
         }
@@ -173,8 +176,9 @@ public sealed class AppUpdateService : IAppUpdateService
                 "The installer architecture does not match this DeskBox process.");
         }
 
-        string targetDirectory = Path.Combine(_updateRootPath, SanitizePathSegment(manifest.Version));
-        string fileName = GetInstallerFileName(downloadUri, manifest.Version);
+        string manifestVersion = GetComparableManifestVersion(manifest);
+        string targetDirectory = Path.Combine(_updateRootPath, SanitizePathSegment(manifestVersion));
+        string fileName = GetInstallerFileName(downloadUri, manifestVersion);
         string targetPath = Path.Combine(targetDirectory, fileName);
         string tempPath = targetPath + ".tmp";
 
@@ -390,12 +394,7 @@ public sealed class AppUpdateService : IAppUpdateService
 
     public static string GetCurrentAppVersion()
     {
-        return Assembly.GetExecutingAssembly()
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-            ?.InformationalVersion
-            .Split('+')[0] ??
-            Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ??
-            "0.0.0";
+        return AppBuildMetadata.ForkVersion;
     }
 
     public static bool IsRemoteVersionNewer(string currentVersion, string remoteVersion)
@@ -436,8 +435,15 @@ public sealed class AppUpdateService : IAppUpdateService
     {
         return manifest is not null &&
             manifest.SchemaVersion == 1 &&
-            !string.IsNullOrWhiteSpace(manifest.Version) &&
+            !string.IsNullOrWhiteSpace(GetComparableManifestVersion(manifest)) &&
             Uri.TryCreate(manifest.DownloadUrl, UriKind.Absolute, out _);
+    }
+
+    public static string GetComparableManifestVersion(AppUpdateManifest manifest)
+    {
+        return string.IsNullOrWhiteSpace(manifest.ForkVersion)
+            ? manifest.Version
+            : manifest.ForkVersion;
     }
 
     internal static bool TrySelectInstallerForArchitecture(
@@ -507,6 +513,9 @@ public sealed class AppUpdateService : IAppUpdateService
             SchemaVersion = 1,
             Channel = "stable",
             Version = version,
+            ForkVersion = version,
+            ForkDisplayVersion = $"{version} (Fork)",
+            UpstreamVersion = AppBuildMetadata.UpstreamVersion,
             DownloadUrl = installerAsset.BrowserDownloadUrl,
             ManualDownloadUrl = DefaultManualDownloadUrl,
             MirrorUrl = DefaultManualDownloadUrl,
@@ -521,8 +530,8 @@ public sealed class AppUpdateService : IAppUpdateService
                 },
             Summary =
             {
-                ["zh-CN"] = $"DeskBox {version} 已发布，可从 GitHub Releases 下载更新。",
-                ["en-US"] = $"DeskBox {version} is available from GitHub Releases.",
+                ["zh-CN"] = $"DeskBox Fork {version} 已发布，可从 GitHub Releases 下载更新。",
+                ["en-US"] = $"DeskBox Fork {version} is available from GitHub Releases.",
                 ["ja-JP"] = $"DeskBox {version} は GitHub Releases から入手できます。",
                 ["de-DE"] = $"DeskBox {version} ist über GitHub Releases verfügbar.",
                 ["pt-BR"] = $"O DeskBox {version} está disponível no GitHub Releases.",

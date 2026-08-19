@@ -234,6 +234,7 @@ public sealed class SettingsService
     public const string LanguageArabic = "ar-SA";
     public const string LanguageBengali = "bn-BD";
     public const string LanguageRussian = "ru-RU";
+    public const string LanguageVietnamese = "vi-VN";
     public const double DefaultWidgetWidth = 280;
     public const double DefaultWidgetHeight = 400;
     public const bool DefaultGlobalHotkeyEnabled = true;
@@ -334,6 +335,8 @@ public const int DefaultSearchMaxResults = 100;
                 [nameof(AppSettings.RecentOrganizationHistory)] = DefaultPreferencePreservationReason.UserData,
                 [nameof(AppSettings.DesktopOrganizationRules)] = DefaultPreferencePreservationReason.UserData,
                 [nameof(AppSettings.DesktopAutoOrganizationEnabled)] = DefaultPreferencePreservationReason.UserChoice,
+                [nameof(AppSettings.RestoreManagedContentsOnExit)] = DefaultPreferencePreservationReason.UserChoice,
+                [nameof(AppSettings.ReorganizeManagedContentsOnStartup)] = DefaultPreferencePreservationReason.UserChoice,
                 [nameof(AppSettings.DesktopAutoOrganizationBaselineUtc)] = DefaultPreferencePreservationReason.RuntimeState,
                 [nameof(AppSettings.DefaultManagedStorageRootPath)] = DefaultPreferencePreservationReason.Storage,
                 [nameof(AppSettings.HasCompletedOnboarding)] = DefaultPreferencePreservationReason.RuntimeState,
@@ -1871,7 +1874,7 @@ settings.FocusClickedWidgetOnRaise = false;
         }
 
         if (settings.Language is not (LanguageSystem or LanguageChinese or LanguageEnglish or LanguageJapanese or LanguageGerman or LanguagePortuguese
-            or LanguageHindi or LanguageSpanish or LanguageFrench or LanguageArabic or LanguageBengali or LanguageRussian))
+            or LanguageHindi or LanguageSpanish or LanguageFrench or LanguageArabic or LanguageBengali or LanguageRussian or LanguageVietnamese))
         {
             settings.Language = LanguageSystem;
             changed = true;

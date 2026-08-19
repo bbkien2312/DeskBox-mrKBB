@@ -19,7 +19,8 @@ public sealed partial class DesktopOrganizationTaskView : UserControl
     {
         InitializeComponent();
         ApplyStaticLocalization();
-        Unloaded += (_, _) => CancelPendingWork();
+        App.Current.LocalizationService.LanguageChanged += OnLanguageChanged;
+        Unloaded += TaskView_Unloaded;
     }
 
     public event EventHandler? CloseRequested;
@@ -42,6 +43,28 @@ public sealed partial class DesktopOrganizationTaskView : UserControl
     {
         _scanCts?.Cancel();
         _executionCts?.Cancel();
+    }
+
+    private void TaskView_Unloaded(object sender, RoutedEventArgs e)
+    {
+        CancelPendingWork();
+        App.Current.LocalizationService.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged()
+    {
+        if (!DispatcherQueue.HasThreadAccess)
+        {
+            DispatcherQueue.TryEnqueue(OnLanguageChanged);
+            return;
+        }
+
+        ApplyStaticLocalization();
+        if (_plan is not null)
+        {
+            UpdateSummary(_plan);
+            RenderExcludedItems(_plan);
+        }
     }
 
     public void CancelExecutionAndCloseWhenSafe()
@@ -91,7 +114,8 @@ public sealed partial class DesktopOrganizationTaskView : UserControl
         {
             DesktopOrganizationPlan plan = await CreateCoordinator().BuildPlanAsync(
                 includeSlowItems: false,
-                cts.Token);
+                includeManagedWidgetItems: IncludeManagedWidgetItemsCheckBox.IsChecked == true,
+                cancellationToken: cts.Token);
             if (cts.IsCancellationRequested || generation != _scanGeneration)
             {
                 return;

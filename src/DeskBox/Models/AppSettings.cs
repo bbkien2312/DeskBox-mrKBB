@@ -23,7 +23,7 @@ public class AppSettings
     public string TrayIconStyle { get; set; } = "Colorful";
 
 /// <summary>
-/// Display language. Valid values: <c>"System"</c>, <c>"zh-CN"</c>, <c>"en-US"</c>, <c>"ja-JP"</c>, <c>"de-DE"</c>, <c>"pt-BR"</c>, <c>"hi-IN"</c>, <c>"es-ES"</c>, <c>"fr-FR"</c>, <c>"ar-SA"</c>, <c>"bn-BD"</c>, <c>"ru-RU"</c>.
+/// Display language. Valid values include the supported locale codes and <c>"vi-VN"</c> for Vietnamese.
 /// </summary>
     public string Language { get; set; } = "System";
 
@@ -466,6 +466,12 @@ public class AppSettings
     /// This is deliberately opt-in.
     /// </summary>
     public bool DesktopAutoOrganizationEnabled { get; set; }
+
+    /// <summary>Move default managed box contents back to Desktop on full exit.</summary>
+    public bool RestoreManagedContentsOnExit { get; set; } = true;
+
+    /// <summary>Queue existing Desktop items for automatic organization at startup.</summary>
+    public bool ReorganizeManagedContentsOnStartup { get; set; } = true;
 
     /// <summary>
     /// Baseline created when automatic organization is enabled. Existing

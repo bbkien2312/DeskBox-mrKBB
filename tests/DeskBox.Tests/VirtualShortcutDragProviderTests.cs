@@ -129,6 +129,44 @@ public sealed class VirtualShortcutDragProviderTests
         }
     }
 
+    [Fact]
+    public void DragPackage_FallsBackToVirtualStorageItemsWhenBrokerReturnsNothing()
+    {
+        string tempDirectory = Path.Combine(
+            Path.GetTempPath(),
+            "DeskBox.Tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        string shortcutPath = Path.Combine(tempDirectory, "App.lnk");
+        File.WriteAllBytes(shortcutPath, [0x4C, 0x00, 0x00, 0x00]);
+
+        try
+        {
+            var dataPackage = new DataPackage();
+            int brokerCallCount = 0;
+            bool prepared = FileItemDragPackage.TryPrepare(
+                dataPackage,
+                [new WidgetItem { Path = shortcutPath, IsShortcut = true }],
+                "widget-test",
+                _ =>
+                {
+                    brokerCallCount++;
+                    return Array.Empty<IStorageItem>();
+                },
+                _ => "App.lnk",
+                out FileItemDragPackageResult result);
+
+            Assert.True(prepared);
+            Assert.True(result.UsesVirtualStorageItems);
+            Assert.False(result.HasStorageItems);
+            Assert.Equal(1, brokerCallCount);
+        }
+        finally
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
     private static string FindRepositoryRoot()
     {
         DirectoryInfo? current = new(AppContext.BaseDirectory);

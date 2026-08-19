@@ -51,6 +51,8 @@ public partial class SettingsViewModel
 
             AutoCheckForUpdates = settings.AutoCheckForUpdates;
             DoubleClickToOpen = settings.DoubleClickToOpen;
+            RestoreManagedContentsOnExit = settings.RestoreManagedContentsOnExit;
+            ReorganizeManagedContentsOnStartup = settings.ReorganizeManagedContentsOnStartup;
             SelectedFileWidgetFolderOpenBehavior =
                 FileWidgetFolderOpenBehaviorNames.NormalizeGlobal(
                     settings.FileWidgetFolderOpenBehavior);
@@ -236,6 +238,9 @@ public partial class SettingsViewModel
         RefreshSelectionProperties(refreshLocalizedOptions: true);
         OnPropertyChanged(nameof(AccentColorDescription));
         OnPropertyChanged(nameof(DistributionChannelText));
+        OnPropertyChanged(nameof(BuildMetadataText));
+        OnPropertyChanged(nameof(UpstreamCommitText));
+        OnPropertyChanged(nameof(ForkCommitText));
         OnPropertyChanged(nameof(OfficialWebsiteDisplayText));
         OnPropertyChanged(nameof(OpenSourceRepositoryDisplayText));
         OnPropertyChanged(nameof(UpdateDownloadActionText));

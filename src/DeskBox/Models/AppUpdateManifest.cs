@@ -5,6 +5,17 @@ public sealed class AppUpdateManifest
     public int SchemaVersion { get; set; } = 1;
     public string Channel { get; set; } = "stable";
     public string Version { get; set; } = string.Empty;
+    /// <summary>
+    /// Fork release identity. Version remains the comparable numeric value
+    /// used by older clients; these fields explain which upstream base and
+    /// fork commit produced the installer.
+    /// </summary>
+    public string ForkVersion { get; set; } = string.Empty;
+    public string ForkDisplayVersion { get; set; } = string.Empty;
+    public string UpstreamVersion { get; set; } = string.Empty;
+    public string UpstreamCommit { get; set; } = string.Empty;
+    public string ForkCommit { get; set; } = string.Empty;
+    public string BuildNumber { get; set; } = string.Empty;
     public string ReleaseDate { get; set; } = string.Empty;
     public string MinimumSupportedVersion { get; set; } = string.Empty;
     public bool Mandatory { get; set; }
