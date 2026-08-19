@@ -120,6 +120,7 @@ function Publish-GitHubRelease {
         draft = $false
         prerelease = $false
     } | ConvertTo-Json
+    $releaseBodyBytes = [System.Text.Encoding]::UTF8.GetBytes($releaseBody)
 
     try {
         $release = Invoke-RestMethod -Method Get -Uri "$apiBase/releases/tags/$Tag" -Headers $Headers
@@ -129,7 +130,7 @@ function Publish-GitHubRelease {
             throw
         }
 
-        $release = Invoke-RestMethod -Method Post -Uri "$apiBase/releases" -Headers $Headers -ContentType "application/json" -Body $releaseBody
+        $release = Invoke-RestMethod -Method Post -Uri "$apiBase/releases" -Headers $Headers -ContentType "application/json; charset=utf-8" -Body $releaseBodyBytes
     }
 
     foreach ($assetPathToUpload in @($AssetPath, $ShaAssetPath)) {
