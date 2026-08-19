@@ -9,7 +9,8 @@
             x:Name="FrozenScreenImage"
             Stretch="Fill"
             PointerMoved="FrozenScreenImage_PointerMoved"
-            PointerPressed="FrozenScreenImage_PointerPressed" />
+            PointerPressed="FrozenScreenImage_PointerPressed"
+            PointerReleased="FrozenScreenImage_PointerReleased" />
         <Rectangle Fill="#16000000" IsHitTestVisible="False" />
         <Border
             x:Name="SelectionBorder"
@@ -31,7 +32,7 @@
                     VerticalAlignment="Center"
                     MaxWidth="360"
                     Foreground="White"
-                    Text="Di chuột để chọn cửa sổ; bấm để khóa vùng chụp"
+                    Text="Bấm chọn cửa sổ, hoặc kéo chuột để cắt vùng tự do"
                     TextTrimming="CharacterEllipsis" />
                 <Button
                     x:Name="CopyButton"

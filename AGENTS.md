@@ -7,10 +7,12 @@ Phần này tóm tắt các fix chính của fork ngày 19/08/2026 và phần ho
 ### Nguồn, phiên bản và phát hành
 
 - Cây `main` của fork là nguồn sự thật. `deskbox_original` chỉ là baseline để đối chiếu; không dùng lại source cũ để ghi đè cây này.
-- Phiên bản app hiện tại: `1.4.2.1-fork.4` (`DeskBoxForkBuildNumber=4`). Source đã push đến commit `2aa50d4`.
+- Phiên bản chuẩn bị phát hành: `1.4.2.1-fork.5` (`DeskBoxForkBuildNumber=5`). Fork 4 đã push đến `437bbe7`; Fork 5 chỉ push/release sau khi build installer và manifest được đối chiếu.
 - Installer Fork 4 đã build tại `Output\DeskBox_Setup_1.4.2.1_x64.exe` và đã publish ở GitHub Release tag `v1.4.2.1-fork.4`. `release/stable.json` online đã trỏ Fork 4, asset, dung lượng và SHA-256 đã được đối chiếu. Fork 3 phải so sánh `forkBuildNumber=3` với manifest `4` để hiện update.
 - Luồng updater nằm ở `scripts\publish-fork-update.ps1`, `Services\AppUpdateService.cs`, `Services\AppBuildMetadata.cs` và `Models\AppUpdateManifest.cs`. Giữ protocol version riêng của fork, `forkBuildNumber` tách khỏi version upstream và tên tag `v1.4.2.1-fork.N`.
 - Script phát hành phải tạo SHA-256/manifest UTF-8 không BOM. Không giả định PowerShell có `Get-FileHash`; script đã có fallback BCL.
+- Khi hoàn thành bất kỳ hạng mục nào phải cập nhật cả `..\PROJECT.md` và phần handoff này bằng tiếng Việt: phạm vi, file đã đổi, lỗi/nguyên nhân/cách xử lý, test, số đo hiệu năng nếu có, commit và thông tin release. Đây là điều kiện trước khi push/phát hành.
+- Checklist release bắt buộc: tăng riêng `DeskBoxForkBuildNumber`, giữ upstream version `1.4.2.1`, build/test/kiểm tra mở installer, tạo manifest UTF-8 không BOM và SHA, push source, publish tag/asset/release, đối chiếu `release/stable.json` online với asset, test cập nhật từ Fork N-1. Không thay bằng chỉ `git push`.
 
 ### Desktop organizer — hành vi phải giữ
 
@@ -34,6 +36,9 @@ Phần này tóm tắt các fix chính của fork ngày 19/08/2026 và phần ho
 - Thumbnail ảnh dùng cache disk demand-driven tại `%LOCALAPPDATA%\DeskBox\cache\thumbnails`; video tiếp tục dùng Windows thumbnail provider. Không thêm quét cache lúc startup ngoài tạo thư mục/cleanup nhỏ.
 - Cache icon, bitmap và thumbnail RAM đã được giảm giới hạn. Số liệu disk thumbnail cache được ghi trong `PerformanceLogger`; đừng tăng cache lại mà không đo RAM thực tế.
 - `Ctrl+Alt+S` mở `ScreenshotCaptureWindow`: chụp ảnh màn hình trước khi overlay hiện, rê để chọn cửa sổ, click để khóa, sau đó Sao chép/Lưu. Desktop/taskbar nghĩa là toàn màn hình. Dùng DWM extended frame bounds nếu có, fallback `GetWindowRect`.
+- **Fork 5 (20/08/2026):** baseline Fork 4 có 6 box/khoảng 105 item, private 258–318 MB và working set 363–439 MB sau idle; cache disk đúng nhưng chỉ 18 PNG/0,16 MB nên không phải nguyên nhân RAM. `WidgetViewModel` trước đó hydrate/retry toàn bộ icon. Fork 5 giới hạn hydrate lúc đầu 12 icon/box, `FileItemSurface` yêu cầu icon khi item được WinUI hiện thực hóa và nhả icon khi item ra khỏi viewport 1 giây; vẫn giữ cache disk/global LRU. Rủi ro cần test UI: kiểm tra icon xuất hiện khi cuộn và không bị nhấp nháy khi đổi layout.
+- **Fork 5 screenshot:** click nhanh khóa cửa sổ/toàn màn hình, nhấn-kéo tạo vùng tự do; snapshot luôn tạo trước overlay. Tọa độ vùng được quy đổi giữa XAML DIP và pixel capture để đúng ở DPI khác 100%. Copy/Lưu ghi log `window`, `monitor` hoặc `region`; Esc hủy, Chọn lại reset.
+- Build Debug x64 và bộ test cô lập `1788/1788` đã đạt sau thay đổi Fork 5. Cảnh báo compiler cũ (nullability/AOT/binding) không phát sinh từ Fork 5; vẫn phải test bản installer/GUI trước release.
 
 ### Kiểm thử và môi trường
 

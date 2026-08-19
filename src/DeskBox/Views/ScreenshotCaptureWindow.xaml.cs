@@ -18,7 +18,7 @@ namespace DeskBox.Views;
 
 /// <summary>
 /// Selector kiểu iTop: chụp một ảnh nền trước khi overlay xuất hiện, sau đó
-/// người dùng có thể thấy rõ, rê chuột và khóa một cửa sổ để lưu hoặc sao chép.
+/// người dùng có thể thấy rõ, bấm chọn cả cửa sổ hoặc kéo vùng tự do để lưu/sao chép.
 /// Desktop/taskbar không chọn cửa sổ nào nên sẽ chụp toàn màn hình hiện tại.
 /// </summary>
 public sealed partial class ScreenshotCaptureWindow : Window
@@ -29,6 +29,9 @@ public sealed partial class ScreenshotCaptureWindow : Window
     private readonly string _snapshotPath;
     private IntPtr _selectedWindow;
     private Win32Helper.RECT _selectedRect;
+    private Windows.Foundation.Point? _dragStart;
+    private bool _isDraggingRegion;
+    private bool _isManualRegion;
     private bool _selectionLocked;
     private bool _isCapturing;
 
@@ -80,10 +83,30 @@ public sealed partial class ScreenshotCaptureWindow : Window
 
     private void FrozenScreenImage_PointerMoved(object sender, PointerRoutedEventArgs e)
     {
-        if (!_selectionLocked)
+        if (_selectionLocked)
         {
-            UpdateSelectionFromCursor();
+            return;
         }
+
+        Windows.Foundation.Point point = e.GetCurrentPoint(FrozenScreenImage).Position;
+        if (_dragStart is { } start)
+        {
+            if (!_isDraggingRegion &&
+                (Math.Abs(point.X - start.X) >= 4 || Math.Abs(point.Y - start.Y) >= 4))
+            {
+                _isDraggingRegion = true;
+                _isManualRegion = true;
+                _selectedWindow = IntPtr.Zero;
+            }
+
+            if (_isDraggingRegion)
+            {
+                UpdateManualRegion(start, point);
+                return;
+            }
+        }
+
+        UpdateSelectionFromCursor();
     }
 
     private void FrozenScreenImage_PointerPressed(object sender, PointerRoutedEventArgs e)
@@ -93,19 +116,51 @@ public sealed partial class ScreenshotCaptureWindow : Window
             return;
         }
 
-        UpdateSelectionFromCursor();
+        _dragStart = e.GetCurrentPoint(FrozenScreenImage).Position;
+        _isDraggingRegion = false;
+        _isManualRegion = false;
+        FrozenScreenImage.CapturePointer(e.Pointer);
+        e.Handled = true;
+    }
+
+    private void FrozenScreenImage_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (_selectionLocked || _dragStart is null)
+        {
+            return;
+        }
+
+        FrozenScreenImage.ReleasePointerCapture(e.Pointer);
+        if (_isDraggingRegion)
+        {
+            LockSelection($"Đã chọn vùng: {_selectedRect.Right - _selectedRect.Left} × {_selectedRect.Bottom - _selectedRect.Top}");
+        }
+        else
+        {
+            UpdateSelectionFromCursor();
+            LockSelection(
+                _selectedWindow == IntPtr.Zero ? "Toàn màn hình đã được chọn" : $"Đã chọn: {GetWindowTitle(_selectedWindow)}");
+        }
+
+        _dragStart = null;
+        e.Handled = true;
+    }
+
+    private void LockSelection(string hint)
+    {
         _selectionLocked = true;
         CopyButton.Visibility = Visibility.Visible;
         SaveButton.Visibility = Visibility.Visible;
         ResetButton.Visibility = Visibility.Visible;
-        SelectionHintText.Text = _selectedWindow == IntPtr.Zero
-            ? "Toàn màn hình đã được chọn"
-            : $"Đã chọn: {GetWindowTitle(_selectedWindow)}";
+        SelectionHintText.Text = hint;
     }
 
     private void ResetButton_Click(object sender, RoutedEventArgs e)
     {
         _selectionLocked = false;
+        _dragStart = null;
+        _isDraggingRegion = false;
+        _isManualRegion = false;
         CopyButton.Visibility = Visibility.Collapsed;
         SaveButton.Visibility = Visibility.Collapsed;
         ResetButton.Visibility = Visibility.Collapsed;
@@ -142,10 +197,41 @@ public sealed partial class ScreenshotCaptureWindow : Window
         }
 
         SelectionHintText.Text = GetWindowTitle(_selectedWindow);
-        int left = Math.Max(_selectedRect.Left, _monitorRect.Left) - _monitorRect.Left;
-        int top = Math.Max(_selectedRect.Top, _monitorRect.Top) - _monitorRect.Top;
-        int right = Math.Min(_selectedRect.Right, _monitorRect.Right) - _monitorRect.Left;
-        int bottom = Math.Min(_selectedRect.Bottom, _monitorRect.Bottom) - _monitorRect.Top;
+        ShowSelectionBorder(_selectedRect);
+    }
+
+    private void UpdateManualRegion(Windows.Foundation.Point start, Windows.Foundation.Point end)
+    {
+        double left = Math.Min(start.X, end.X);
+        double top = Math.Min(start.Y, end.Y);
+        double right = Math.Max(start.X, end.X);
+        double bottom = Math.Max(start.Y, end.Y);
+        _selectedRect = new Win32Helper.RECT
+        {
+            Left = ToCaptureX(left),
+            Top = ToCaptureY(top),
+            Right = ToCaptureX(right),
+            Bottom = ToCaptureY(bottom)
+        };
+        if (_selectedRect.Right <= _selectedRect.Left)
+        {
+            _selectedRect.Right = Math.Min(_monitorRect.Right, _selectedRect.Left + 1);
+        }
+        if (_selectedRect.Bottom <= _selectedRect.Top)
+        {
+            _selectedRect.Bottom = Math.Min(_monitorRect.Bottom, _selectedRect.Top + 1);
+        }
+
+        ShowSelectionBorder(_selectedRect);
+        SelectionHintText.Text = $"Vùng tự do: {_selectedRect.Right - _selectedRect.Left} × {_selectedRect.Bottom - _selectedRect.Top}";
+    }
+
+    private void ShowSelectionBorder(Win32Helper.RECT rect)
+    {
+        double left = ToVisualX(Math.Max(rect.Left, _monitorRect.Left));
+        double top = ToVisualY(Math.Max(rect.Top, _monitorRect.Top));
+        double right = ToVisualX(Math.Min(rect.Right, _monitorRect.Right));
+        double bottom = ToVisualY(Math.Min(rect.Bottom, _monitorRect.Bottom));
         SelectionBorder.Width = Math.Max(1, right - left);
         SelectionBorder.Height = Math.Max(1, bottom - top);
         SelectionBorder.Margin = new Thickness(left, top, 0, 0);
@@ -153,6 +239,20 @@ public sealed partial class ScreenshotCaptureWindow : Window
         SelectionBorder.VerticalAlignment = VerticalAlignment.Top;
         SelectionBorder.Visibility = Visibility.Visible;
     }
+
+    private int ToCaptureX(double x) => _monitorRect.Left + (int)Math.Round(
+        Math.Clamp(x, 0, Math.Max(1, FrozenScreenImage.ActualWidth)) *
+        Math.Max(1, _monitorRect.Right - _monitorRect.Left) / Math.Max(1, FrozenScreenImage.ActualWidth));
+
+    private int ToCaptureY(double y) => _monitorRect.Top + (int)Math.Round(
+        Math.Clamp(y, 0, Math.Max(1, FrozenScreenImage.ActualHeight)) *
+        Math.Max(1, _monitorRect.Bottom - _monitorRect.Top) / Math.Max(1, FrozenScreenImage.ActualHeight));
+
+    private double ToVisualX(int x) => (x - _monitorRect.Left) * FrozenScreenImage.ActualWidth /
+        Math.Max(1, _monitorRect.Right - _monitorRect.Left);
+
+    private double ToVisualY(int y) => (y - _monitorRect.Top) * FrozenScreenImage.ActualHeight /
+        Math.Max(1, _monitorRect.Bottom - _monitorRect.Top);
 
     private async Task ExportSelectionAsync(bool copyToClipboard)
     {
@@ -166,7 +266,9 @@ public sealed partial class ScreenshotCaptureWindow : Window
         SaveButton.IsEnabled = false;
         try
         {
-            Win32Helper.RECT captureRect = _selectedWindow == IntPtr.Zero ? _monitorRect : _selectedRect;
+            Win32Helper.RECT captureRect = _isManualRegion || _selectedWindow != IntPtr.Zero
+                ? _selectedRect
+                : _monitorRect;
             string imagePath = await Task.Run(() => CropFrozenSnapshot(captureRect));
             if (copyToClipboard)
             {
@@ -176,7 +278,7 @@ public sealed partial class ScreenshotCaptureWindow : Window
                 Clipboard.SetContent(dataPackage);
                 Clipboard.Flush();
                 TryDelete(imagePath);
-                App.Log($"[Screenshot] Copied mode={(_selectedWindow == IntPtr.Zero ? "monitor" : "window")}");
+                App.Log($"[Screenshot] Copied mode={GetCaptureMode()}");
                 Close();
                 return;
             }
@@ -195,7 +297,7 @@ public sealed partial class ScreenshotCaptureWindow : Window
 
             await Task.Run(() => File.Copy(imagePath, destination.Path, overwrite: true));
             TryDelete(imagePath);
-            App.Log($"[Screenshot] Saved mode={(_selectedWindow == IntPtr.Zero ? "monitor" : "window")} path={destination.Path}");
+            App.Log($"[Screenshot] Saved mode={GetCaptureMode()} path={destination.Path}");
             Close();
         }
         catch (Exception ex)
@@ -209,6 +311,8 @@ public sealed partial class ScreenshotCaptureWindow : Window
     }
 
     private static string CaptureMonitorSnapshot(Win32Helper.RECT rect) => CaptureBitmapToPng(rect, "frozen");
+
+    private string GetCaptureMode() => _isManualRegion ? "region" : _selectedWindow == IntPtr.Zero ? "monitor" : "window";
 
     private string CropFrozenSnapshot(Win32Helper.RECT rect)
     {

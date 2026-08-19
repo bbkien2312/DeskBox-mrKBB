@@ -53,6 +53,7 @@ public sealed partial class FileItemSurface : UserControl, INotifyPropertyChange
 
     private FileItemSurfaceVisualState _visualState = FileItemSurfaceVisualState.Normal;
     private WidgetViewModel? _subscribedLayoutContext;
+    private WidgetItem? _realizedItem;
     private bool _isSurfaceLoaded;
 
     public FileItemSurface()
@@ -184,6 +185,7 @@ public sealed partial class FileItemSurface : UserControl, INotifyPropertyChange
             }
 
             surface.NotifyPresentationChanged();
+            surface.RefreshRealizedItem();
         }
     }
 
@@ -233,6 +235,7 @@ public sealed partial class FileItemSurface : UserControl, INotifyPropertyChange
             new FileItemSurfaceVisualStateChangedEventArgs(_visualState));
         OnPropertyChanged(nameof(VisualState));
         NotifyPresentationChanged();
+        RefreshRealizedItem();
     }
 
     private void NotifyPresentationChanged()
@@ -251,11 +254,17 @@ public sealed partial class FileItemSurface : UserControl, INotifyPropertyChange
         RefreshLayoutContextSubscription();
         SetVisualState(FileItemSurfaceVisualState.Normal);
         NotifyPresentationChanged();
+        RefreshRealizedItem();
     }
 
     private void SurfaceBorder_Unloaded(object sender, RoutedEventArgs e)
     {
         _isSurfaceLoaded = false;
+        if (_realizedItem is not null)
+        {
+            LayoutContext?.MarkItemSurfaceNotVisible(_realizedItem);
+            _realizedItem = null;
+        }
         DetachLayoutContextSubscription();
         SetVisualState(FileItemSurfaceVisualState.Normal);
     }
@@ -306,6 +315,26 @@ public sealed partial class FileItemSurface : UserControl, INotifyPropertyChange
             this,
             new FileItemSurfaceVisualStateChangedEventArgs(state));
         OnPropertyChanged(nameof(VisualState));
+    }
+
+    private void RefreshRealizedItem()
+    {
+        WidgetItem? next = _isSurfaceLoaded ? DataContext as WidgetItem : null;
+        if (ReferenceEquals(_realizedItem, next))
+        {
+            return;
+        }
+
+        if (_realizedItem is not null)
+        {
+            LayoutContext?.MarkItemSurfaceNotVisible(_realizedItem);
+        }
+
+        _realizedItem = next;
+        if (_realizedItem is not null)
+        {
+            LayoutContext?.MarkItemSurfaceVisible(_realizedItem);
+        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

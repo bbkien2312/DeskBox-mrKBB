@@ -16,13 +16,9 @@ public partial class WidgetViewModel : ObservableObject, IDisposable
 {
     private const int IncrementalRefreshBatchThreshold = 24;
     private const int IconHydrationBatchSize = 8;
-    private const int IconHydrationRetryCount = 3;
-    private static readonly TimeSpan[] s_iconHydrationRetryDelays =
-    [
-        TimeSpan.FromMilliseconds(450),
-        TimeSpan.FromMilliseconds(1200),
-        TimeSpan.FromMilliseconds(2600)
-    ];
+    // Item surfaces request the rest as they enter the viewport.  This keeps a
+    // large Desktop box from decoding every icon merely because the box opens.
+    private const int InitialIconHydrationLimit = 12;
     private const int FolderCountHydrationBatchSize = 8;
     private const int ShortcutTargetHydrationBatchSize = 4;
     private const int ShellKindHydrationBatchSize = 8;
@@ -36,6 +32,8 @@ public partial class WidgetViewModel : ObservableObject, IDisposable
     private readonly SettingsService _settingsService;
     private readonly LocalizationService _localizationService;
     private readonly SemaphoreSlim _folderRefreshGate = new(1, 1);
+    private readonly HashSet<WidgetItem> _visibleIconHydrationItems = [];
+    private readonly HashSet<WidgetItem> _realizedItemSurfaces = [];
     private int _itemHydrationGeneration;
     private int _iconDecodePixelWidth;
     private bool _isDisposed;
