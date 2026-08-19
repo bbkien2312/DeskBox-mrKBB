@@ -42,6 +42,11 @@ public static class PerformanceLogger
 
     public static long ThumbnailEstimatedBytes { get; set; }
 
+    /// <summary>Demand-created thumbnail PNGs held on local disk.</summary>
+    public static int DiskThumbnailCacheCount { get; set; }
+
+    public static long DiskThumbnailCacheBytes { get; set; }
+
     /// <summary>Icon cache entry count, updated by IconHelper.</summary>
     public static int IconCacheCount { get; set; }
 
@@ -167,6 +172,8 @@ public static class PerformanceLogger
                 $"handles={LastHandleCount} " +
                 $"thumbCache={ThumbnailCacheCount} " +
                 $"thumbCacheMB={ThumbnailEstimatedBytes / (1024.0 * 1024):F1} " +
+                $"thumbDiskCache={DiskThumbnailCacheCount} " +
+                $"thumbDiskCacheMB={DiskThumbnailCacheBytes / (1024.0 * 1024):F1} " +
                 $"iconCache={IconCacheCount} " +
                 $"decodedBitmapCache={DecodedBitmapCacheCount} " +
                 $"decodedBitmapMB={DecodedBitmapEstimatedBytes / (1024.0 * 1024):F1} " +

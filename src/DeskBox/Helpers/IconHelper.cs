@@ -16,12 +16,12 @@ public static class IconHelper
     // evicting an inactive cache entry does not make the displayed thumbnail
     // disappear; it only prevents repeated background refreshes from growing
     // the global cache indefinitely.
-    private const int MaxIconCacheEntries = 120;
-    private const long MaxIconCacheBytes = 16L * 1024 * 1024;
-    private const int MaxDecodedBitmapCacheEntries = 96;
-    private const long MaxDecodedBitmapCacheBytes = 24L * 1024 * 1024;
-    private const int MaxThumbnailCacheEntries = 64;
-    private const long MaxThumbnailCacheBytes = 16L * 1024 * 1024;
+    private const int MaxIconCacheEntries = 96;
+    private const long MaxIconCacheBytes = 12L * 1024 * 1024;
+    private const int MaxDecodedBitmapCacheEntries = 64;
+    private const long MaxDecodedBitmapCacheBytes = 16L * 1024 * 1024;
+    private const int MaxThumbnailCacheEntries = 32;
+    private const long MaxThumbnailCacheBytes = 8L * 1024 * 1024;
     private const string SharedCacheScope = "shared";
 
     // Icon bytes cache: path → PNG bytes (for shell icons, not image thumbnails)
@@ -363,9 +363,32 @@ public static class IconHelper
         await s_thumbLoadSemaphore.WaitAsync();
         try
         {
+            bool isVideo = IsVideoFile(path);
+            // Persist reduced image thumbnails on disk. This is consulted only
+            // for a file that is being shown; no startup scan or continuous
+            // refresh is introduced. Video previews stay with the Windows
+            // thumbnail provider because it is the only reliable decoder for
+            // the installed codecs.
+            if (!isVideo)
+            {
+                byte[]? diskThumbnail = await ThumbnailDiskCache.GetOrCreateAsync(
+                    path,
+                    decodePixelWidth);
+                if (diskThumbnail is { Length: > 0 })
+                {
+                    var cachedImage = await CreateBitmapImageAsync(
+                        dispatcher,
+                        diskThumbnail,
+                        decodePixelWidth);
+                    if (cachedImage is not null)
+                    {
+                        return cachedImage;
+                    }
+                }
+            }
+
             // Try Windows native thumbnail first — leverages the system
             // thumbnail cache and avoids reading the full image into memory.
-            bool isVideo = IsVideoFile(path);
             var image = await TryLoadNativeThumbnailAsync(
                 dispatcher,
                 path,

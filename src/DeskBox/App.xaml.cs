@@ -895,6 +895,7 @@ public partial class App : Application
             IsStartupMode = _processStartupLaunchDetected || isStartupLaunch;
             UiDispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
             WidgetSegmentedLayoutHelper.Initialize(UiDispatcherQueue);
+            ThumbnailDiskCache.EnsureInitialized();
 
             // A prepared restore is applied before any service reads or normalizes app data.
             DeskBoxRestoreApplyResult restoreResult = await DataBackupService.ApplyPendingRestoreAsync();

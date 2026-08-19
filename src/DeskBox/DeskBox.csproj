@@ -10,8 +10,8 @@
          upstream version in assembly metadata for diagnostics and updates. -->
     <DeskBoxUpstreamVersion Condition="'$(DeskBoxUpstreamVersion)' == ''">1.4.2</DeskBoxUpstreamVersion>
     <DeskBoxForkVersion Condition="'$(DeskBoxForkVersion)' == ''">1.4.2.1</DeskBoxForkVersion>
-    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2.1-fork.3</DeskBoxForkDisplayVersion>
-    <DeskBoxForkBuildNumber Condition="'$(DeskBoxForkBuildNumber)' == ''">3</DeskBoxForkBuildNumber>
+    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2.1-fork.4</DeskBoxForkDisplayVersion>
+    <DeskBoxForkBuildNumber Condition="'$(DeskBoxForkBuildNumber)' == ''">4</DeskBoxForkBuildNumber>
     <!-- Keep the update wire contract stable across fork builds. Increase
          this only when a future updater can no longer read old manifests. -->
     <DeskBoxUpdaterProtocolVersion Condition="'$(DeskBoxUpdaterProtocolVersion)' == ''">1</DeskBoxUpdaterProtocolVersion>

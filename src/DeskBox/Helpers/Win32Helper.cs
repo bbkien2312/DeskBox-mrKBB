@@ -1181,6 +1181,38 @@ public static partial class Win32Helper
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
+    private const int DwmwaExtendedFrameBounds = 9;
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(
+        IntPtr hWnd,
+        int dwAttribute,
+        out RECT pvAttribute,
+        int cbAttribute);
+
+    /// <summary>
+    /// Gets the visible DWM frame rather than the larger Win32 interaction
+    /// rectangle. This makes screenshot window selection match what is seen.
+    /// </summary>
+    public static bool TryGetExtendedFrameBounds(IntPtr hWnd, out RECT bounds)
+    {
+        try
+        {
+            return DwmGetWindowAttribute(
+                       hWnd,
+                       DwmwaExtendedFrameBounds,
+                       out bounds,
+                       Marshal.SizeOf<RECT>()) >= 0 &&
+                   bounds.Right > bounds.Left &&
+                   bounds.Bottom > bounds.Top;
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            bounds = default;
+            return false;
+        }
+    }
+
     public const uint MONITOR_DEFAULTTONEAREST = 2;
     private const int EnumCurrentSettings = -1;
 

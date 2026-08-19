@@ -92,7 +92,14 @@ public sealed class DesktopOrganizationTransaction
                         await _fileService.ExecuteTransferPlanAsync(
                             plans,
                             move: true,
-                            useShellProgress: true);
+                            // Desktop and the default managed storage root
+                            // normally share a local volume. File.Move then
+                            // becomes an atomic metadata rename, while the
+                            // shell path adds visible preflight/progress
+                            // overhead. Cross-volume plans still fall back to
+                            // the managed copy/delete transfer inside
+                            // FileService.
+                            useShellProgress: false);
                     completedMoves.AddRange(results);
                     if (results.Count != groupItems.Length)
                     {
@@ -390,6 +397,10 @@ public sealed class DesktopOrganizationTransaction
                 MappedFolderPath = target.TargetDirectoryPath,
                 FollowsDefaultStoragePath = true,
                 ManagedFolderName = managedFolderName,
+                // New boxes created by the Desktop organizer group similar
+                // file formats together by default. Existing boxes retain
+                // their chosen sort order.
+                SortMode = WidgetSortMode.Type,
                 BoundsCoordinateVersion = WidgetConfig.CurrentBoundsCoordinateVersion,
                 Width = settings.DefaultWidgetWidth,
                 Height = settings.DefaultWidgetHeight,
