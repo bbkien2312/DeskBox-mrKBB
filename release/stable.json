@@ -1,29 +1,29 @@
 {
-    "schemaVersion":  1,
-    "updaterProtocolVersion":  1,
-    "channel":  "stable",
-    "version":  "1.4.2.1",
-    "forkVersion":  "1.4.2.1",
-    "forkDisplayVersion":  "1.4.2.1-fork.3",
-    "forkBuildNumber":  3,
-    "upstreamVersion":  "1.4.2",
-    "forkCommit":  "d793051dd42e8f13725cb65f1059b58338db55ab",
-    "buildNumber":  "1.4.2.1-fork.3",
-    "releaseDate":  "2026-08-19T16:38:51Z",
-    "minimumSupportedVersion":  "1.4.2.1",
-    "mandatory":  false,
-    "downloadUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.3/DeskBox_Setup_1.4.2.1_x64.exe",
-    "manualDownloadUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
-    "mirrorUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
-    "sha256":  "7CD38E0A952262022C6D9629F97306CC16323B4B055573D4823E51ED53FAD899",
-    "size":  25406130,
-    "releaseNotesUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.3",
-    "summary":  {
-                    "vi-VN":  "DeskBox 1.4.2.1-fork.3 đã sẵn sàng cập nhật.",
-                    "en-US":  "DeskBox 1.4.2.1-fork.3 is ready to update."
-                },
-    "releaseNotes":  {
-                         "vi-VN":  "Cập nhật fork build 3 với cơ chế updater dùng chung.",
-                         "en-US":  "Fork build 3 with the shared updater protocol."
-                     }
+  "schemaVersion": 1,
+  "updaterProtocolVersion": 1,
+  "channel": "stable",
+  "version": "1.4.2.1",
+  "forkVersion": "1.4.2.1",
+  "forkDisplayVersion": "1.4.2.1-fork.4",
+  "forkBuildNumber": 4,
+  "upstreamVersion": "1.4.2",
+  "forkCommit": "2aa50d42c0c331f25c560f4ca0ff1b2ff468f163",
+  "buildNumber": "1.4.2.1-fork.4",
+  "releaseDate": "2026-08-19T18:44:04Z",
+  "minimumSupportedVersion": "1.4.2.1",
+  "mandatory": false,
+  "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.4/DeskBox_Setup_1.4.2.1_x64.exe",
+  "manualDownloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
+  "mirrorUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
+  "sha256": "280EDE523E4521DE842D73451B380EA9F8575450A14C8AF83DAD75A3E4779CE2",
+  "size": 25412838,
+  "releaseNotesUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.4",
+  "summary": {
+    "vi-VN": "DeskBox 1.4.2.1-fork.4 đã sẵn sàng cập nhật.",
+    "en-US": "DeskBox 1.4.2.1-fork.4 is ready to update."
+  },
+  "releaseNotes": {
+    "vi-VN": "Cập nhật cache thumbnail trên ổ đĩa, chụp nhanh chọn cửa sổ, chuyển Desktop nhanh hơn, box mới sắp xếp theo loại và giảm cache RAM.",
+    "en-US": "Disk thumbnail cache, frozen-window screenshot capture, faster Desktop moves, Type sorting for new boxes, and tighter RAM caches."
+  }
 }
