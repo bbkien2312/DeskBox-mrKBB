@@ -231,6 +231,13 @@ $size = (Get-Item $InstallerPath).Length
 $shaPath = "$InstallerPath.sha256"
 "$hash  $assetName" | Set-Content -Path $shaPath -Encoding ASCII
 
+# Windows PowerShell 5 có thể đọc file script UTF-8 không BOM theo code page
+# hệ thống. Dựng câu tiếng Việt từ HTML entities để manifest không bị lỗi dấu.
+$viSummary = [System.Net.WebUtility]::HtmlDecode(
+    "DeskBox $displayVersion &#x0111;&#x00E3; s&#x1EB5;n s&#x00E0;ng c&#x1EAD;p nh&#x1EAD;t.")
+$viReleaseNotes = [System.Net.WebUtility]::HtmlDecode(
+    "C&#x1EAD;p nh&#x1EAD;t fork build $ForkBuildNumber v&#x1EDB;i c&#x01A1; ch&#x1EBF; updater d&#x00F9;ng chung.")
+
 $downloadUrl = "https://github.com/$Repository/releases/download/$tag/$([Uri]::EscapeDataString($assetName))"
 $manifest = [ordered]@{
     schemaVersion = 1
@@ -253,11 +260,11 @@ $manifest = [ordered]@{
     size = $size
     releaseNotesUrl = "https://github.com/$Repository/releases/tag/$tag"
     summary = [ordered]@{
-        "vi-VN" = "DeskBox $displayVersion đã sẵn sàng cập nhật."
+        "vi-VN" = $viSummary
         "en-US" = "DeskBox $displayVersion is ready to update."
     }
     releaseNotes = [ordered]@{
-        "vi-VN" = "Cập nhật fork build $ForkBuildNumber với cơ chế updater dùng chung."
+        "vi-VN" = $viReleaseNotes
         "en-US" = "Fork build $ForkBuildNumber with the shared updater protocol."
     }
 }
@@ -265,7 +272,9 @@ $manifest = [ordered]@{
 $artifactManifestRoot = Join-Path $repoRoot "artifacts\release\$displayVersion"
 New-Item -ItemType Directory -Path $artifactManifestRoot -Force | Out-Null
 $manifestPath = Join-Path $artifactManifestRoot "stable.json"
-$manifest | ConvertTo-Json -Depth 8 | Set-Content -Path $manifestPath -Encoding UTF8
+$manifestJson = $manifest | ConvertTo-Json -Depth 8
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($manifestPath, $manifestJson, $utf8NoBom)
 
 if ($PublishGitHubRelease) {
     $headers = Get-ReleaseApiHeaders
@@ -279,7 +288,7 @@ if ($PublishGitHubRelease) {
 
     $manifestPathForRepo = Join-Path $repoRoot "release\stable.json"
     New-Item -ItemType Directory -Path (Split-Path $manifestPathForRepo -Parent) -Force | Out-Null
-    Copy-Item $manifestPath $manifestPathForRepo -Force
+    [System.IO.File]::WriteAllText($manifestPathForRepo, $manifestJson, $utf8NoBom)
 
     if ($CommitAndPushManifest) {
         Push-Location $repoRoot
