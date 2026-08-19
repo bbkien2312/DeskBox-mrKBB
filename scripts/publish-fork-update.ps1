@@ -141,7 +141,7 @@ function Publish-GitHubRelease {
         }
 
         $uploadUri = $release.upload_url -replace '\{\?name,label\}$', ""
-        $uploadUri = "$uploadUri?name=$([Uri]::EscapeDataString($assetName))"
+        $uploadUri = "${uploadUri}?name=$([Uri]::EscapeDataString($assetName))"
         Invoke-RestMethod -Method Post -Uri $uploadUri -Headers $Headers -ContentType "application/octet-stream" -InFile $assetPathToUpload | Out-Null
     }
 
