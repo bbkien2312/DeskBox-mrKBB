@@ -16,9 +16,10 @@ public partial class WidgetViewModel : ObservableObject, IDisposable
 {
     private const int IncrementalRefreshBatchThreshold = 24;
     private const int IconHydrationBatchSize = 8;
-    // Item surfaces request the rest as they enter the viewport.  This keeps a
-    // large Desktop box from decoding every icon merely because the box opens.
-    private const int InitialIconHydrationLimit = 12;
+    // A normal Desktop box should have all of its shell icons shortly after
+    // opening.  The old 12-item budget left large shortcut/document boxes with
+    // permanent placeholders when WinUI did not realize every container.
+    private const int InitialIconHydrationLimit = 48;
     private const int FolderCountHydrationBatchSize = 8;
     private const int ShortcutTargetHydrationBatchSize = 4;
     private const int ShellKindHydrationBatchSize = 8;

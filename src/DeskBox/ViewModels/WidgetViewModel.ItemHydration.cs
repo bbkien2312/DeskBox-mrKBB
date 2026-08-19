@@ -325,44 +325,10 @@ public partial class WidgetViewModel
             _realizedItemSurfaces.Remove(item);
         }
 
-        _ = ReleaseUnrealizedItemIconAsync(item, Volatile.Read(ref _itemHydrationGeneration));
-    }
-
-    private async Task ReleaseUnrealizedItemIconAsync(WidgetItem item, int generation)
-    {
-        // WinUI can briefly recycle a container during a layout pass.  A short
-        // delay avoids flicker while still releasing thumbnails after scrolling.
-        await Task.Delay(TimeSpan.FromSeconds(1));
-        if (_isDisposed || generation != Volatile.Read(ref _itemHydrationGeneration))
-        {
-            return;
-        }
-
-        lock (_realizedItemSurfaces)
-        {
-            if (_realizedItemSurfaces.Contains(item))
-            {
-                return;
-            }
-        }
-
-        void Release()
-        {
-            if (generation == Volatile.Read(ref _itemHydrationGeneration) &&
-                Items.Contains(item))
-            {
-                item.Icon = null;
-            }
-        }
-
-        if (_dispatcherQueue.HasThreadAccess)
-        {
-            Release();
-        }
-        else
-        {
-            _dispatcherQueue.TryEnqueue(Release);
-        }
+        // Do not clear item.Icon here. WinUI can unload/recycle a visible
+        // container during relayout, and dropping the only BitmapImage caused
+        // missing icons in large Apps and Documents boxes. Global caches still
+        // have their own bounded idle cleanup.
     }
 
     private async Task HydrateVisibleItemIconAsync(WidgetItem item, int generation)
