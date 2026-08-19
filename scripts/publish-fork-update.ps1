@@ -244,7 +244,7 @@ $shaPath = "$InstallerPath.sha256"
 $viSummary = [System.Net.WebUtility]::HtmlDecode(
     "DeskBox $displayVersion &#x0111;&#x00E3; s&#x1EB5;n s&#x00E0;ng c&#x1EAD;p nh&#x1EAD;t.")
 $viReleaseNotes = [System.Net.WebUtility]::HtmlDecode(
-    "C&#x1EAD;p nh&#x1EAD;t cache thumbnail tr&#x00EA;n &#x1ED5; &#x0111;&#x0129;a, ch&#x1EE5;p nhanh ch&#x1ECD;n c&#x1EED;a s&#x1ED5;, chuy&#x1EC3;n Desktop nhanh h&#x01A1;n, box m&#x1EDB;i s&#x1EAF;p x&#x1EBF;p theo lo&#x1EA1;i v&#x00E0 gi&#x1EA3;m cache RAM.")
+    "C&#x1EAD;p nh&#x1EAD;t cache thumbnail tr&#x00EA;n &#x1ED5; &#x0111;&#x0129;a, ch&#x1EE5;p nhanh ch&#x1ECD;n c&#x1EED;a s&#x1ED5;, chuy&#x1EC3;n Desktop nhanh h&#x01A1;n, box m&#x1EDB;i s&#x1EAF;p x&#x1EBF;p theo lo&#x1EA1;i v&#x00E0; gi&#x1EA3;m cache RAM.")
 
 $downloadUrl = "https://github.com/$Repository/releases/download/$tag/$([Uri]::EscapeDataString($assetName))"
 $manifest = [ordered]@{
