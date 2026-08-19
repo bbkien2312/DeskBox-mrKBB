@@ -8,7 +8,7 @@ Phần này tóm tắt các fix chính của fork ngày 19/08/2026 và phần ho
 
 - Cây `main` của fork là nguồn sự thật. `deskbox_original` chỉ là baseline để đối chiếu; không dùng lại source cũ để ghi đè cây này.
 - Phiên bản app hiện tại: `1.4.2.1-fork.4` (`DeskBoxForkBuildNumber=4`). Source đã push đến commit `2aa50d4`.
-- Installer Fork 4 đã build local tại `Output\DeskBox_Setup_1.4.2.1_x64.exe`; GitHub Release và `release/stable.json` online vẫn ở Fork 3 cho đến khi release Fork 4 được upload. Không kết luận nút Update đã có Fork 4 chỉ vì source đã push.
+- Installer Fork 4 đã build tại `Output\DeskBox_Setup_1.4.2.1_x64.exe` và đã publish ở GitHub Release tag `v1.4.2.1-fork.4`. `release/stable.json` online đã trỏ Fork 4, asset, dung lượng và SHA-256 đã được đối chiếu. Fork 3 phải so sánh `forkBuildNumber=3` với manifest `4` để hiện update.
 - Luồng updater nằm ở `scripts\publish-fork-update.ps1`, `Services\AppUpdateService.cs`, `Services\AppBuildMetadata.cs` và `Models\AppUpdateManifest.cs`. Giữ protocol version riêng của fork, `forkBuildNumber` tách khỏi version upstream và tên tag `v1.4.2.1-fork.N`.
 - Script phát hành phải tạo SHA-256/manifest UTF-8 không BOM. Không giả định PowerShell có `Get-FileHash`; script đã có fallback BCL.
 
