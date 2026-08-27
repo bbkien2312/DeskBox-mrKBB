@@ -49,6 +49,7 @@ VersionInfoTextVersion={#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+SetupLogging=yes
 ShowLanguageDialog=yes
 
 [Languages]

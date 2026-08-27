@@ -1,17 +1,22 @@
 [Code]
 const
-  DotNetRuntimeUrl = 'https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.9/dotnet-runtime-10.0.9-win-x64.exe';
-  DotNetRuntimeFallbackUrl = 'https://aka.ms/dotnet/10.0/dotnet-runtime-win-x64.exe';
-  DotNetRuntimeInstallerName = 'dotnet-runtime-10.0.9-win-x64.exe';
+  DotNetRuntimeUrl = 'https://aka.ms/dotnet/10.0/dotnet-runtime-win-x64.exe';
+  DotNetRuntimeFallbackUrl = 'https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.11/dotnet-runtime-10.0.11-win-x64.exe';
+  DotNetRuntimeInstallerName = 'dotnet-runtime-10-win-x64.exe';
   WindowsAppRuntimeUrl = 'https://download.microsoft.com/download/5e0f2e92-f3ef-4023-97f0-bd57018a478c/WindowsAppRuntimeInstall-x64.exe';
   WindowsAppRuntimeFallbackUrl = 'https://aka.ms/windowsappsdk/2.2/2.2.0/windowsappruntimeinstall-x64.exe';
   WindowsAppRuntimeInstallerName = 'WindowsAppRuntimeInstall-x64.exe';
+  VcRedistUrl = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
+  VcRedistFallbackUrl = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
+  VcRedistInstallerName = 'vc_redist.x64.exe';
+  MinimumDeskBoxWindowsBuild = 19044;
 
 var
   DependencyDownloadPage: TDownloadWizardPage;
   DependencyInstallPage: TOutputProgressWizardPage;
   ShouldInstallDotNetRuntime: Boolean;
   ShouldInstallWindowsAppRuntime: Boolean;
+  ShouldInstallVcRedist: Boolean;
   DependenciesPrepared: Boolean;
 
 function IsMajorVersion(Value: string; ExpectedMajor: Integer): Boolean;
@@ -122,13 +127,31 @@ begin
     (ResultCode = 0);
 end;
 
+function IsVcRedistInstalled: Boolean;
+var
+  Installed: Cardinal;
+begin
+  Result :=
+    RegQueryDWordValue(
+      HKLM64,
+      'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64',
+      'Installed',
+      Installed) and
+    (Installed = 1);
+
+  if not Result then
+    Log('DeskBox dependency check: Visual C++ 2015-2022 x64 runtime is missing.');
+end;
+
 procedure DetectDeskBoxDependencies;
 begin
   ShouldInstallDotNetRuntime := not IsDotNet10RuntimeInstalled;
   ShouldInstallWindowsAppRuntime := not IsWindowsAppRuntime22Installed;
+  ShouldInstallVcRedist := not IsVcRedistInstalled;
 
   Log('DeskBox dependency check: dotnet10Missing=' + IntToStr(Integer(ShouldInstallDotNetRuntime)));
   Log('DeskBox dependency check: windowsAppRuntimeMissing=' + IntToStr(Integer(ShouldInstallWindowsAppRuntime)));
+  Log('DeskBox dependency check: vcRedistMissing=' + IntToStr(Integer(ShouldInstallVcRedist)));
 end;
 
 procedure WaitForDeskBoxDependencies;
@@ -137,10 +160,10 @@ var
 begin
   // Runtime installers can return just before Windows finishes publishing the
   // machine-wide registration. Recheck for a few seconds before continuing.
-  for Attempt := 1 to 10 do
+  for Attempt := 1 to 30 do
   begin
     DetectDeskBoxDependencies;
-    if not (ShouldInstallDotNetRuntime or ShouldInstallWindowsAppRuntime) then
+    if not (ShouldInstallDotNetRuntime or ShouldInstallWindowsAppRuntime or ShouldInstallVcRedist) then
       Exit;
 
     Sleep(1000);
@@ -203,7 +226,7 @@ var
 begin
   Result := True;
 
-  if not (ShouldInstallDotNetRuntime or ShouldInstallWindowsAppRuntime) then
+  if not (ShouldInstallDotNetRuntime or ShouldInstallWindowsAppRuntime or ShouldInstallVcRedist) then
     Exit;
 
   DependencyDownloadPage.Show;
@@ -232,6 +255,22 @@ begin
         WindowsAppRuntimeUrl,
         WindowsAppRuntimeFallbackUrl,
         WindowsAppRuntimeInstallerName,
+        ErrorMessage) then
+      begin
+        SuppressibleMsgBox(ErrorMessage, mbCriticalError, MB_OK, IDOK);
+        Result := False;
+        Exit;
+      end;
+    end;
+
+    if ShouldInstallVcRedist then
+    begin
+      DependencyDownloadPage.Msg1Label.Caption := 'Downloading Visual C++ 2015-2022 Redistributable x64...';
+      if not DownloadDependencyWithProgress(
+        'Visual C++ 2015-2022 Redistributable x64',
+        VcRedistUrl,
+        VcRedistFallbackUrl,
+        VcRedistInstallerName,
         ErrorMessage) then
       begin
         SuppressibleMsgBox(ErrorMessage, mbCriticalError, MB_OK, IDOK);
@@ -306,11 +345,30 @@ begin
   if ShouldInstallWindowsAppRuntime then
     StepCount := StepCount + 1;
 
+  if ShouldInstallVcRedist then
+    StepCount := StepCount + 1;
+
   if StepCount = 0 then
     Exit;
 
   DependencyInstallPage.Show;
   try
+    if ShouldInstallVcRedist then
+    begin
+      Step := Step + 1;
+      if not InstallDownloadedDependency(
+        'Visual C++ 2015-2022 Redistributable x64',
+        VcRedistInstallerName,
+        '/install /quiet /norestart',
+        Step,
+        StepCount,
+        NeedsRestart) then
+      begin
+        Result := False;
+        Exit;
+      end;
+    end;
+
     if ShouldInstallDotNetRuntime then
     begin
       Step := Step + 1;
@@ -347,6 +405,32 @@ begin
   end;
 end;
 
+function GetDeskBoxWindowsCompatibilityError: String;
+var
+  Version: TWindowsVersion;
+begin
+  Result := '';
+  if not IsWin64 then
+  begin
+    Result :=
+      'DeskBox requires 64-bit Windows.' + #13#10 +
+      'DeskBox chỉ hỗ trợ Windows 64-bit.';
+    Exit;
+  end;
+
+  GetWindowsVersionEx(Version);
+
+  if (Version.Major < 10) or
+     ((Version.Major = 10) and (Version.Build < MinimumDeskBoxWindowsBuild)) then
+  begin
+    Result :=
+      'DeskBox requires Windows 10 21H2 (build 19044) or newer, 64-bit.' + #13#10 +
+      'Windows hiện tại: ' + IntToStr(Version.Major) + '.' +
+      IntToStr(Version.Minor) + ' (build ' + IntToStr(Version.Build) + ').' + #13#10 +
+      'Hãy cập nhật Windows rồi chạy lại bộ cài.';
+  end;
+end;
+
 procedure InitializeWizard;
 begin
   DependencyDownloadPage := CreateDownloadPage(ExpandConstant('{cm:DependencyDownloadTitle}'), ExpandConstant('{cm:DependencyDownloadSubtitle}'), nil);
@@ -359,6 +443,13 @@ begin
   Result := '';
   if DependenciesPrepared then
     Exit;
+
+  Result := GetDeskBoxWindowsCompatibilityError;
+  if Result <> '' then
+  begin
+    Log('DeskBox compatibility preflight failed: ' + Result);
+    Exit;
+  end;
 
   NeedsRestart := False;
   DetectDeskBoxDependencies;
@@ -382,9 +473,20 @@ begin
   end;
 
   WaitForDeskBoxDependencies;
-  if ShouldInstallDotNetRuntime or ShouldInstallWindowsAppRuntime then
+  if ShouldInstallDotNetRuntime or ShouldInstallVcRedist then
   begin
     Result := ExpandConstant('{cm:DependencyVerificationFailed}');
+    Exit;
+  end;
+
+  if ShouldInstallWindowsAppRuntime then
+  begin
+    // A system-wide Windows App Runtime install can be successful while the
+    // non-elevated Setup process cannot enumerate the package yet. A restart
+    // completes user registration and prevents a false permanent failure.
+    NeedsRestart := True;
+    Result := ExpandConstant('{cm:NeedsRestart}');
+    Log('Windows App Runtime was installed but is not visible to the current user yet; requesting restart.');
     Exit;
   end;
 

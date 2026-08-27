@@ -29,6 +29,10 @@ param(
 
     [string]$InstallerPath = "",
 
+    [string[]]$AdditionalAssetPath = @(),
+
+    [switch]$BuildOfflinePrerequisites,
+
     [switch]$SkipBuild,
 
     [switch]$PublishGitHubRelease,
@@ -106,8 +110,7 @@ function Publish-GitHubRelease {
     param(
         [string]$Repo,
         [string]$Tag,
-        [string]$AssetPath,
-        [string]$ShaAssetPath,
+        [string[]]$AssetPaths,
         [string]$ReleaseName,
         [hashtable]$Headers
     )
@@ -133,7 +136,7 @@ function Publish-GitHubRelease {
         $release = Invoke-RestMethod -Method Post -Uri "$apiBase/releases" -Headers $Headers -ContentType "application/json; charset=utf-8" -Body $releaseBodyBytes
     }
 
-    foreach ($assetPathToUpload in @($AssetPath, $ShaAssetPath)) {
+    foreach ($assetPathToUpload in $AssetPaths) {
         $assetName = [System.IO.Path]::GetFileName($assetPathToUpload)
         $existing = @($release.assets | Where-Object { $_.name -eq $assetName })
         foreach ($asset in $existing) {
@@ -206,6 +209,23 @@ if (-not $SkipBuild) {
     }
 
     Invoke-NativeChecked -FilePath $iscc -ArgumentList @($installerScript)
+
+    if ($BuildOfflinePrerequisites) {
+        if ($Platform -ne "x64") {
+            throw "Gói prerequisites offline hiện mới hỗ trợ x64. Không thể build với Platform=$Platform."
+        }
+
+        $preparePrerequisitesScript = Join-Path $repoRoot "scripts\prepare-offline-prerequisites.ps1"
+        Invoke-NativeChecked -FilePath "powershell.exe" -ArgumentList @(
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-File", $preparePrerequisitesScript,
+            "-Platform", "x64")
+
+        $offlineInstallerScript = Join-Path $installerRoot "DeskBox.Prerequisites.iss"
+        Invoke-NativeChecked -FilePath $iscc -ArgumentList @($offlineInstallerScript)
+        $AdditionalAssetPath += (Join-Path $outputRoot "DeskBox_Prerequisites_${ForkVersion}_x64.exe")
+    }
 }
 
 if ([string]::IsNullOrWhiteSpace($InstallerPath)) {
@@ -239,12 +259,39 @@ $size = (Get-Item $InstallerPath).Length
 $shaPath = "$InstallerPath.sha256"
 "$hash  $assetName" | Set-Content -Path $shaPath -Encoding ASCII
 
+$releaseAssetPaths = @($InstallerPath, $shaPath)
+foreach ($additionalPath in $AdditionalAssetPath) {
+    $resolvedAdditionalPath = if ([System.IO.Path]::IsPathRooted($additionalPath)) {
+        [System.IO.Path]::GetFullPath($additionalPath)
+    }
+    else {
+        [System.IO.Path]::GetFullPath((Join-Path $repoRoot $additionalPath))
+    }
+
+    if (-not (Test-Path $resolvedAdditionalPath -PathType Leaf)) {
+        throw "Không tìm thấy release asset bổ sung: $resolvedAdditionalPath"
+    }
+
+    $additionalName = [System.IO.Path]::GetFileName($resolvedAdditionalPath)
+    $additionalSha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $additionalHash = ([BitConverter]::ToString($additionalSha.ComputeHash([System.IO.File]::ReadAllBytes($resolvedAdditionalPath)))).Replace("-", "")
+    }
+    finally {
+        $additionalSha.Dispose()
+    }
+
+    $additionalShaPath = "$resolvedAdditionalPath.sha256"
+    "$additionalHash  $additionalName" | Set-Content -Path $additionalShaPath -Encoding ASCII
+    $releaseAssetPaths += @($resolvedAdditionalPath, $additionalShaPath)
+}
+
 # Windows PowerShell 5 có thể đọc file script UTF-8 không BOM theo code page
 # hệ thống. Dựng câu tiếng Việt từ HTML entities để manifest không bị lỗi dấu.
 $viSummary = [System.Net.WebUtility]::HtmlDecode(
     "DeskBox $displayVersion &#x0111;&#x00E3; s&#x1EB5;n s&#x00E0;ng c&#x1EAD;p nh&#x1EAD;t.")
 $viReleaseNotes = [System.Net.WebUtility]::HtmlDecode(
-    "T&#x1ED1;i &#x01B0;u icon theo v&#x00F9;ng hi&#x1EC3;n th&#x1ECB; v&#x00E0; gi&#x1EA3;m RAM, cache thumbnail tr&#x00EA;n &#x1ED5; &#x0111;&#x0129;a, ch&#x1EE5;p m&#x00E0;n h&#x00EC;nh ch&#x1ECD;n c&#x1EED;a s&#x1ED5; ho&#x1EB7;c k&#x00E9;o v&#x00F9;ng t&#x1EF1; do.")
+    "C&#x1EA3;i thi&#x1EC7;n c&#x00E0;i &#x0111;&#x1EB7;t Windows 10/11: ki&#x1EC3;m tra r&#x00F5; Windows x64, b&#x1ED5; sung Visual C++ Runtime, log c&#x00E0;i &#x0111;&#x1EB7;t v&#x00E0; g&#x00F3;i prerequisite offline t&#x00E1;ch ri&#x00EA;ng.")
 
 $downloadUrl = "https://github.com/$Repository/releases/download/$tag/$([Uri]::EscapeDataString($assetName))"
 $manifest = [ordered]@{
@@ -273,7 +320,7 @@ $manifest = [ordered]@{
     }
     releaseNotes = [ordered]@{
         "vi-VN" = $viReleaseNotes
-        "en-US" = "Viewport-driven icon loading, lower RAM use, disk thumbnail cache, and frozen screenshot capture for either a window or a free-drawn region."
+        "en-US" = "Improves Windows 10/11 setup with x64 preflight, Visual C++ runtime installation, setup logs, and a separate offline prerequisites package."
     }
 }
 
@@ -289,8 +336,7 @@ if ($PublishGitHubRelease) {
     $release = Publish-GitHubRelease `
         -Repo $Repository `
         -Tag $tag `
-        -AssetPath $InstallerPath `
-        -ShaAssetPath $shaPath `
+        -AssetPaths $releaseAssetPaths `
         -ReleaseName $displayVersion `
         -Headers $headers
 

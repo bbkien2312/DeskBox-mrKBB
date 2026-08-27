@@ -53,6 +53,7 @@ VersionInfoTextVersion={#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+SetupLogging=yes
 ; Let the user pick the installer language; the dialog pre-selects the
 ; language detected from the system locale. English is listed first so any
 ; locale that is neither Chinese nor English falls back to English.
