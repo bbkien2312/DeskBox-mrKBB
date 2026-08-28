@@ -22,6 +22,8 @@ Fork duy trì tại <https://github.com/bbkien2312/DeskBox-mrKBB> bổ sung các
 - Sau khi vùng chụp đã khóa, nhấn `Ctrl+C` hoặc nút **Sao chép (Ctrl+C)** để đưa ảnh vào Clipboard Windows. Không có hotkey chụp toàn cục mới và không tạo thêm cache ảnh trong RAM.
 - Mọi bản fork phát hành phải tăng riêng `forkBuildNumber`, upload installer/checksum lên GitHub Release và cập nhật `release/stable.json`; không dùng số phiên bản upstream để quyết định update.
 
+Bản hiện hành là [1.4.2.1-fork.8](https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.8). Installer x64 online có SHA-256 `66208975EC78986B8EF1EA39B4DBD8A30572A030DC793F572544E0B50958AAF6`; nó tự tải dependency còn thiếu theo cơ chế setup hiện có.
+
 ## Mica and Acrylic on the desktop
 
 DeskBox uses native-feeling Windows materials and keeps ordinary desktop files and folders in place.
