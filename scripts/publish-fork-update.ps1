@@ -23,6 +23,8 @@ param(
 
     [string]$ForkVersion = "",
 
+    [string]$ForkCommit = "",
+
     [string]$Repository = "bbkien2312/DeskBox-mrKBB",
 
     [string]$ReleaseTag = "",
@@ -174,7 +176,12 @@ if ($ForkBuildNumber -le 0) {
 }
 
 $protocolVersion = [int](Get-ProjectProperty -Project $project -Name "DeskBoxUpdaterProtocolVersion" -Fallback "1")
-$forkCommit = Get-GitCommit -RepositoryRoot $repoRoot
+if ([string]::IsNullOrWhiteSpace($ForkCommit)) {
+    $forkCommit = Get-GitCommit -RepositoryRoot $repoRoot
+}
+else {
+    $forkCommit = $ForkCommit.Trim()
+}
 $displayVersion = "$ForkVersion-fork.$ForkBuildNumber"
 $tag = if ([string]::IsNullOrWhiteSpace($ReleaseTag)) { "v$displayVersion" } else { $ReleaseTag.Trim() }
 $architectureSuffix = if ($Platform -eq "ARM64") { "arm64" } else { "x64" }
