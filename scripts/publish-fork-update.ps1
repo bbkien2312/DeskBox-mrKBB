@@ -74,7 +74,11 @@ function Invoke-NativeChecked {
 }
 
 function Get-GitCommit {
-    $commit = (& git rev-parse HEAD).Trim()
+    param(
+        [string]$RepositoryRoot
+    )
+
+    $commit = (& git -C $RepositoryRoot rev-parse HEAD).Trim()
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commit)) {
         return "unknown"
     }
@@ -170,7 +174,7 @@ if ($ForkBuildNumber -le 0) {
 }
 
 $protocolVersion = [int](Get-ProjectProperty -Project $project -Name "DeskBoxUpdaterProtocolVersion" -Fallback "1")
-$forkCommit = Get-GitCommit
+$forkCommit = Get-GitCommit -RepositoryRoot $repoRoot
 $displayVersion = "$ForkVersion-fork.$ForkBuildNumber"
 $tag = if ([string]::IsNullOrWhiteSpace($ReleaseTag)) { "v$displayVersion" } else { $ReleaseTag.Trim() }
 $architectureSuffix = if ($Platform -eq "ARM64") { "arm64" } else { "x64" }
