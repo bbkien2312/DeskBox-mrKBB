@@ -4,26 +4,26 @@
   "channel": "stable",
   "version": "1.4.2.1",
   "forkVersion": "1.4.2.1",
-  "forkDisplayVersion": "1.4.2.1-fork.7",
-  "forkBuildNumber": 7,
+  "forkDisplayVersion": "1.4.2.1-fork.8",
+  "forkBuildNumber": 8,
   "upstreamVersion": "1.4.2",
-  "forkCommit": "b54b895c91d51774fa51a7708756c0d3edd54aab",
-  "buildNumber": "1.4.2.1-fork.7",
-  "releaseDate": "2026-08-27T22:36:46Z",
+  "forkCommit": "906610c85115f60f9e7f2e43bfe1df044e9be387",
+  "buildNumber": "1.4.2.1-fork.8",
+  "releaseDate": "2026-08-28T03:52:13Z",
   "minimumSupportedVersion": "1.4.2.1",
   "mandatory": false,
-  "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.7/DeskBox_Setup_1.4.2.1_x64.exe",
+  "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.8/DeskBox_Setup_1.4.2.1_x64.exe",
   "manualDownloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
   "mirrorUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
-  "sha256": "68FE0EA7DD2C57DB0A32AB450378D859F19BFCF4B4BA0CBB14E98E43C13C5BB6",
-  "size": 25396088,
-  "releaseNotesUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.7",
+  "sha256": "34F6E8099CBC3060FC6D9D7CA3EDA77AD09B6169D644B123F3311C5766B9F55E",
+  "size": 25397260,
+  "releaseNotesUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.8",
   "summary": {
-    "vi-VN": "DeskBox 1.4.2.1-fork.7 đã sẵn sàng cập nhật.",
-    "en-US": "DeskBox 1.4.2.1-fork.7 is ready to update."
+    "vi-VN": "DeskBox 1.4.2.1-fork.8 đã sẵn sàng cập nhật.",
+    "en-US": "DeskBox 1.4.2.1-fork.8 is ready to update."
   },
   "releaseNotes": {
-    "vi-VN": "Cải thiện cài đặt Windows 10/11: kiểm tra rõ Windows x64, bổ sung Visual C++ Runtime, log cài đặt và gói prerequisite offline tách riêng.",
-    "en-US": "Improves Windows 10/11 setup with x64 preflight, Visual C++ runtime installation, setup logs, and a separate offline prerequisites package."
+    "vi-VN": "Thêm Ctrl+C trong màn hình chụp: sau khi khóa vùng, ảnh được sao chép thẳng vào Clipboard Windows như nút Sao chép.",
+    "en-US": "Adds Ctrl+C to copy a locked screenshot selection directly to the Windows clipboard."
   }
 }
