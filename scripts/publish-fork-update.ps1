@@ -31,6 +31,10 @@ param(
 
     [string[]]$AdditionalAssetPath = @(),
 
+    [string]$VietnameseReleaseNotes = "",
+
+    [string]$EnglishReleaseNotes = "",
+
     [switch]$BuildOfflinePrerequisites,
 
     [switch]$SkipBuild,
@@ -293,6 +297,14 @@ $viSummary = [System.Net.WebUtility]::HtmlDecode(
 $viReleaseNotes = [System.Net.WebUtility]::HtmlDecode(
     "C&#x1EA3;i thi&#x1EC7;n c&#x00E0;i &#x0111;&#x1EB7;t Windows 10/11: ki&#x1EC3;m tra r&#x00F5; Windows x64, b&#x1ED5; sung Visual C++ Runtime, log c&#x00E0;i &#x0111;&#x1EB7;t v&#x00E0; g&#x00F3;i prerequisite offline t&#x00E1;ch ri&#x00EA;ng.")
 
+if (-not [string]::IsNullOrWhiteSpace($VietnameseReleaseNotes)) {
+    $viReleaseNotes = $VietnameseReleaseNotes.Trim()
+}
+
+if ([string]::IsNullOrWhiteSpace($EnglishReleaseNotes)) {
+    $EnglishReleaseNotes = "Improves Windows 10/11 setup with x64 preflight, Visual C++ runtime installation, setup logs, and a separate offline prerequisites package."
+}
+
 $downloadUrl = "https://github.com/$Repository/releases/download/$tag/$([Uri]::EscapeDataString($assetName))"
 $manifest = [ordered]@{
     schemaVersion = 1
@@ -320,7 +332,7 @@ $manifest = [ordered]@{
     }
     releaseNotes = [ordered]@{
         "vi-VN" = $viReleaseNotes
-        "en-US" = "Improves Windows 10/11 setup with x64 preflight, Visual C++ runtime installation, setup logs, and a separate offline prerequisites package."
+        "en-US" = $EnglishReleaseNotes.Trim()
     }
 }
 

@@ -173,11 +173,24 @@ public sealed partial class ScreenshotCaptureWindow : Window
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) => Close();
 
-    private void RootGrid_KeyDown(object sender, KeyRoutedEventArgs e)
+    private async void RootGrid_KeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key == Windows.System.VirtualKey.Escape)
         {
             Close();
+            return;
+        }
+
+        // Chỉ chiếm Ctrl+C trong overlay sau khi người dùng đã khóa vùng chụp.
+        // Luồng xuất ảnh dùng chung với nút Sao chép để Clipboard Windows, log,
+        // dọn file tạm và xử lý lỗi hoàn toàn nhất quán.
+        if (e.Key == Windows.System.VirtualKey.C &&
+            Win32Helper.IsKeyPressed(Windows.System.VirtualKey.Control) &&
+            _selectionLocked &&
+            !_isCapturing)
+        {
+            e.Handled = true;
+            await ExportSelectionAsync(copyToClipboard: true);
         }
     }
 

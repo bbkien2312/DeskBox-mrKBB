@@ -37,7 +37,7 @@
                 <Button
                     x:Name="CopyButton"
                     Click="CopyButton_Click"
-                    Content="Sao chép"
+                    Content="Sao chép (Ctrl+C)"
                     Visibility="Collapsed" />
                 <Button
                     x:Name="SaveButton"

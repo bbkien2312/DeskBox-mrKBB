@@ -14,6 +14,14 @@ English | [简体中文](README.zh-CN.md)
 
 DeskBox organizes desktop files, maps existing folders, and keeps everyday tools close without replacing Explorer or changing how your files work. Its real-folder-backed widgets make it a modern open-source alternative to tools such as Stardock Fences, while todos, quick notes, search, weather, and music controls remain useful extras rather than the product's core promise.
 
+## Ghi chú cho fork mrKBB
+
+Fork duy trì tại <https://github.com/bbkien2312/DeskBox-mrKBB> bổ sung các chức năng ưu tiên cho Desktop organizer: phân loại tự động theo type/folder, log tổ chức, cache thumbnail trên ổ đĩa, khôi phục nội dung box khi thoát và chụp màn hình nhanh.
+
+- `Ctrl+Alt+S`: mở lớp chụp màn hình đóng băng; click chọn một cửa sổ, kéo chuột chọn vùng tự do, hoặc chọn Desktop/taskbar để chụp toàn màn hình.
+- Sau khi vùng chụp đã khóa, nhấn `Ctrl+C` hoặc nút **Sao chép (Ctrl+C)** để đưa ảnh vào Clipboard Windows. Không có hotkey chụp toàn cục mới và không tạo thêm cache ảnh trong RAM.
+- Mọi bản fork phát hành phải tăng riêng `forkBuildNumber`, upload installer/checksum lên GitHub Release và cập nhật `release/stable.json`; không dùng số phiên bản upstream để quyết định update.
+
 ## Mica and Acrylic on the desktop
 
 DeskBox uses native-feeling Windows materials and keeps ordinary desktop files and folders in place.
