@@ -1,29 +1,29 @@
 {
-  "schemaVersion": 1,
-  "updaterProtocolVersion": 1,
-  "channel": "stable",
-  "version": "1.4.2.1",
-  "forkVersion": "1.4.2.1",
-  "forkDisplayVersion": "1.4.2.1-fork.8",
-  "forkBuildNumber": 8,
-  "upstreamVersion": "1.4.2",
-  "forkCommit": "906610c85115f60f9e7f2e43bfe1df044e9be387",
-  "buildNumber": "1.4.2.1-fork.8",
-  "releaseDate": "2026-08-28T03:56:11Z",
-  "minimumSupportedVersion": "1.4.2.1",
-  "mandatory": false,
-  "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.8/DeskBox_Setup_1.4.2.1_x64.exe",
-  "manualDownloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
-  "mirrorUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
-  "sha256": "66208975EC78986B8EF1EA39B4DBD8A30572A030DC793F572544E0B50958AAF6",
-  "size": 25398825,
-  "releaseNotesUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.8",
-  "summary": {
-    "vi-VN": "DeskBox 1.4.2.1-fork.8 đã sẵn sàng cập nhật.",
-    "en-US": "DeskBox 1.4.2.1-fork.8 is ready to update."
-  },
-  "releaseNotes": {
-    "vi-VN": "Thêm Ctrl+C trong màn hình chụp: sau khi khóa vùng, ảnh được sao chép thẳng vào Clipboard Windows như nút Sao chép.",
-    "en-US": "Adds Ctrl+C to copy a locked screenshot selection directly to the Windows clipboard."
-  }
+    "schemaVersion":  1,
+    "updaterProtocolVersion":  1,
+    "channel":  "stable",
+    "version":  "1.4.2.1",
+    "forkVersion":  "1.4.2.1",
+    "forkDisplayVersion":  "1.4.2.1-fork.9",
+    "forkBuildNumber":  9,
+    "upstreamVersion":  "1.4.2",
+    "forkCommit":  "ad4480c5ae2090aca9a3ef6a5235e01d2bb93555",
+    "buildNumber":  "1.4.2.1-fork.9",
+    "releaseDate":  "2026-08-29T02:46:31Z",
+    "minimumSupportedVersion":  "1.4.2.1",
+    "mandatory":  false,
+    "downloadUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.9/DeskBox_Setup_1.4.2.1_x64.exe",
+    "manualDownloadUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
+    "mirrorUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
+    "sha256":  "BF81928B4C959DFBE855DB399E362FECEEF8CA49729C5141CD4A08FBD7B9E461",
+    "size":  25702451,
+    "releaseNotesUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.9",
+    "summary":  {
+                    "vi-VN":  "DeskBox 1.4.2.1-fork.9 đã sẵn sàng cập nhật.",
+                    "en-US":  "DeskBox 1.4.2.1-fork.9 is ready to update."
+                },
+    "releaseNotes":  {
+                         "vi-VN":  "Chụp một cửa sổ bằng nội dung riêng của cửa sổ đó, không còn bị cửa sổ khác che. Chụp vùng kéo, Desktop và toàn màn hình giữ nguyên. Có fallback và log để xử lý khác biệt driver hoặc ứng dụng.",
+                         "en-US":  "Captures a selected window independently so overlapping windows no longer appear in the image. Region, desktop, and full-screen capture keep their existing behavior, with fallback logging for compatibility."
+                     }
 }
