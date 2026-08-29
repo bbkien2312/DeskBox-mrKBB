@@ -10,8 +10,8 @@
          upstream version in assembly metadata for diagnostics and updates. -->
     <DeskBoxUpstreamVersion Condition="'$(DeskBoxUpstreamVersion)' == ''">1.4.2</DeskBoxUpstreamVersion>
     <DeskBoxForkVersion Condition="'$(DeskBoxForkVersion)' == ''">1.4.2.1</DeskBoxForkVersion>
-    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2.1-fork.8</DeskBoxForkDisplayVersion>
-    <DeskBoxForkBuildNumber Condition="'$(DeskBoxForkBuildNumber)' == ''">8</DeskBoxForkBuildNumber>
+    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2.1-fork.9</DeskBoxForkDisplayVersion>
+    <DeskBoxForkBuildNumber Condition="'$(DeskBoxForkBuildNumber)' == ''">9</DeskBoxForkBuildNumber>
     <!-- Keep the update wire contract stable across fork builds. Increase
          this only when a future updater can no longer read old manifests. -->
     <DeskBoxUpdaterProtocolVersion Condition="'$(DeskBoxUpdaterProtocolVersion)' == ''">1</DeskBoxUpdaterProtocolVersion>
@@ -78,6 +78,9 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="Markdig" Version="1.3.2" />
+    <!-- Chỉ dùng khi người dùng chụp riêng một cửa sổ: lấy nội dung HWND
+         qua Windows Graphics Capture, không cắt từ ảnh Desktop bị che. -->
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
   </ItemGroup>
 
   <ItemGroup>

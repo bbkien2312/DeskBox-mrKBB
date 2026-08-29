@@ -282,7 +282,12 @@ public sealed partial class ScreenshotCaptureWindow : Window
             Win32Helper.RECT captureRect = _isManualRegion || _selectedWindow != IntPtr.Zero
                 ? _selectedRect
                 : _monitorRect;
-            string imagePath = await Task.Run(() => CropFrozenSnapshot(captureRect));
+            // Chỉ cửa sổ đã chọn dùng Windows Graphics Capture để lấy nội dung
+            // riêng, không còn là một mảnh cắt từ Desktop bị các cửa sổ khác che.
+            // Vùng kéo tự do và toàn màn hình vẫn xuất đúng ảnh nền đóng băng cũ.
+            string imagePath = _selectedWindow != IntPtr.Zero && !_isManualRegion
+                ? await SelectedWindowScreenshotService.CaptureAsync(_selectedWindow)
+                : await Task.Run(() => CropFrozenSnapshot(captureRect));
             if (copyToClipboard)
             {
                 StorageFile file = await StorageFile.GetFileFromPathAsync(imagePath);
