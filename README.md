@@ -1,6 +1,6 @@
 # DeskBox
 
-> Ghi chú fork (29/08/2026, chưa phát hành): khi chụp **một cửa sổ đã chọn**, fork dùng Windows Graphics Capture theo HWND để ảnh không bị các cửa sổ khác che. Chụp Desktop/toàn màn hình/kéo vùng tự do vẫn giữ snapshot cũ. Chi tiết triển khai và kiểm thử được ghi bằng tiếng Việt trong `AGENTS.md` của fork.
+> Ghi chú fork (29/08/2026, Fork 9 chưa phát hành trên GitHub): khi chụp **một cửa sổ đã chọn**, fork dùng Windows Graphics Capture theo HWND để ảnh không bị các cửa sổ khác che. Chụp Desktop/toàn màn hình/kéo vùng tự do vẫn giữ snapshot cũ. Installer x64 đã build tại `Output\DeskBox_Setup_1.4.2.1_x64.exe`; chi tiết triển khai và kiểm thử được ghi bằng tiếng Việt trong `AGENTS.md` của fork.
 
 **A free, open-source Windows desktop organizer with native-feeling WinUI 3 widgets.**
 
