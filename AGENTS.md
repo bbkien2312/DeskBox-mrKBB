@@ -1,5 +1,13 @@
 # DeskBox development workflow
 
+### Hoàn thiện locale tiếng Việt — 30/08/2026
+
+- `src/DeskBox/Strings/vi-VN.json` đã được bổ sung theo toàn bộ danh sách chuẩn `en-US.json` (2.339 key), dùng bản dịch offline làm nền rồi rà lại các nhãn thao tác, box, file, Todo, Quick Capture, tìm kiếm, thời tiết và cập nhật.
+- Khôi phục 94 chuỗi động có placeholder từ bản an toàn và dịch lại theo từng đoạn; kiểm tra cuối cùng bảo đảm `{0}`, `{1}` và định dạng ngày/giờ không bị mất hoặc đổi thứ tự.
+- Sửa tiêu đề hardcode của Settings, Onboarding, Content Widget, Quick Capture và Screenshot sang tiếng Việt; tên DeskBox, PDF, Todo, Mica và phím tắt vẫn giữ nguyên vì là tên sản phẩm/thuật ngữ.
+- Không thay đổi logic tổ chức Desktop, watcher, cache, screenshot hay updater. Không push/release trong lượt này.
+- Kiểm tra đã thực hiện: JSON parse thành công; `vi-VN` có đủ 2.339 key chuẩn; placeholder sai `0`; cần hoàn tất build/test x64 trước khi bàn giao.
+
 ## Handoff bắt buộc — fork `bbkien2312/DeskBox-mrKBB`
 
 Phần này tóm tắt các fix chính của fork ngày 19/08/2026 và phần hoàn thiện Fork 4 ngày 20/08/2026. Commit ngày 18/08 chỉ là baseline source ban đầu. Khi sửa lỗi mới, giữ nguyên các hành vi dưới đây trừ khi người dùng duyệt thay đổi khác.
@@ -77,3 +85,19 @@ Phần này tóm tắt các fix chính của fork ngày 19/08/2026 và phần ho
 - DeskBox is a packaged Windows application. Do not first run its tests with the default `AnyCPU` platform: MSIX packaging rejects a processor-neutral app-host executable. Run the test suite directly with `dotnet test .\tests\DeskBox.Tests\DeskBox.Tests.csproj --no-restore --verbosity:minimal -p:Platform=x64` (add `-p:RuntimeIdentifier=win-x64` when using architecture-specific restored assets).
 - For Release publishing, always specify a matching platform and runtime identifier from the start: `-p:Platform=x86 -p:RuntimeIdentifier=win-x86` for x86, `-p:Platform=x64 -p:RuntimeIdentifier=win-x64` for x64, or `-p:Platform=ARM64 -p:RuntimeIdentifier=win-arm64` for ARM64. Keep `SelfContained=false` and `WindowsAppSDKSelfContained=false` for the runtime-download installer workflow unless the user requests a self-contained build.
 - The explicit architecture rules above apply to tests and Release publishing. Continue using the canonical non-platform Debug output for the normal local restart workflow.
+
+### 30/08/2026 — Thử dịch toàn bộ bằng Gemini
+
+- Đã tạo cuộc trò chuyện Gemini mới, upload đúng `src/DeskBox/Strings/en-US.json` và thử dịch bằng Flash/Pro.
+- Flash bị giới hạn đầu ra và trả thiếu dữ liệu; Pro trả được từng lô nhưng vẫn có thể sinh JSON lỗi escape hoặc chưa đủ toàn bộ key. Không dùng phản hồi Gemini chưa qua kiểm tra để ghi đè locale.
+- Đã tạo script tách lô ở `artifacts/translation/split-en-us.ps1`; đây là công cụ chuẩn bị, không phải dữ liệu runtime của app. Lô hợp lệ đầu tiên được lưu riêng dưới `artifacts/translation/gemini-batches/`.
+- Quy tắc nghiệm thu: JSON phải parse được, đủ đúng key/thứ tự, placeholder mỗi key phải khớp `en-US.json`, rồi mới merge vào `src/DeskBox/Strings/vi-VN.json`.
+- Bộ locale hiện tại vẫn là bản đã kiểm tra trước đó; build RID x64 đạt 0 lỗi và test x64 đạt **1790/1790 passed** sau lần thử lại.
+
+### Hoàn tất dịch Gemini Flash — 30/08/2026
+
+- Đã dịch đủ 2.339 key bằng Gemini Flash theo 10 lô; Gemini được yêu cầu chỉ trả code block `json`, không Python/JavaScript.
+- Lô 2 ban đầu bị lưu nhầm bản sao lô 1; đã phát hiện bằng kiểm tra trùng key, dịch lại và thay đúng bản.
+- Đã ghép các lô bằng `artifacts/translation/merge-gemini-vi.ps1`, kiểm tra đủ key, không trùng/thiếu và placeholder khớp trước khi ghi locale.
+- Locale chính `src/DeskBox/Strings/vi-VN.json` hiện có 2.340 entry gồm 2.339 key chuẩn và `Language.Vietnamese`; bản trước được lưu tại `artifacts/translation/vi-VN.before-gemini.json`.
+- Build RID x64 đạt 0 lỗi; test x64 đạt **1790/1790 passed**. Chưa push/release theo đúng yêu cầu hiện tại.

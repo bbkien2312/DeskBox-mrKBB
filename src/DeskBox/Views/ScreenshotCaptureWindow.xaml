@@ -2,7 +2,7 @@
     x:Class="DeskBox.Views.ScreenshotCaptureWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="DeskBox Screenshot">
+    Title="Chụp màn hình DeskBox">
     <Grid x:Name="RootGrid" Background="Black">
         <!-- Ảnh nền được chụp trước khi overlay hiện ra: màn hình đứng yên nhưng vẫn nhìn rõ để chọn cửa sổ. -->
         <Image

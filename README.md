@@ -4,6 +4,12 @@
 
 **A free, open-source Windows desktop organizer with native-feeling WinUI 3 widgets.**
 
+### Tiếng Việt
+
+Bộ giao diện tiếng Việt đã được dịch đầy đủ từ `en-US.json` bằng Gemini Flash theo từng lô, sau đó kiểm tra đủ key và placeholder trước khi đóng gói. Chọn **Tiếng Việt** trong Settings > General > Language rồi khởi động lại nếu bản đang chạy chưa refresh hết giao diện.
+
+DeskBox hỗ trợ chọn **Tiếng Việt** trong `Cài đặt → Chung → Ngôn ngữ`. Bộ locale Việt bao phủ danh sách chuỗi giao diện chuẩn, các trạng thái tổ chức Desktop, thao tác box/file, Todo, chụp nhanh, tìm kiếm, thời tiết và cập nhật. Các tên riêng như DeskBox, PDF, Todo, Mica và phím tắt được giữ nguyên để tránh nhầm lẫn.
+
 English | [简体中文](README.zh-CN.md)
 
 [![CI](https://github.com/Tianyu199509/DeskBox/actions/workflows/ci.yml/badge.svg)](https://github.com/Tianyu199509/DeskBox/actions/workflows/ci.yml)
@@ -41,7 +47,7 @@ DeskBox uses native-feeling Windows materials and keeps ordinary desktop files a
 | **Platform** | Windows 10/11 build 19044+, x86, x64 and ARM64 |
 | **Technology** | C#, WinUI 3, .NET 10, Windows App SDK 2.2 |
 | **Storage model** | Local-first; files, notes, tasks, settings, and layouts remain on the PC |
-| **Languages** | English, Simplified Chinese, Japanese, German, Brazilian Portuguese, Hindi, Spanish, French, Arabic, Bengali, Russian |
+| **Languages** | English, Vietnamese, Simplified Chinese, Japanese, German, Brazilian Portuguese, Hindi, Spanish, French, Arabic, Bengali, Russian |
 | **License** | GPL-3.0-only |
 
 The six newer language packs prioritize the main file-widget and onboarding flows. A small number of detailed settings still use English while their translations are completed.
