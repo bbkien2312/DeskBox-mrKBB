@@ -102,8 +102,10 @@ public sealed class AppUpdateService : IAppUpdateService
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             var manifest = await JsonSerializer.DeserializeAsync<AppUpdateManifest>(stream, s_jsonOptions, cancellationToken);
+            string? compatibilityError = null;
             if (manifest is null ||
                 manifest.UpdaterProtocolVersion > CurrentUpdaterProtocolVersion ||
+                !IsCurrentWindowsSupported(manifest, out compatibilityError) ||
                 !TrySelectInstallerForArchitecture(
                     manifest,
                     CurrentInstallerArchitectureSuffix) ||
@@ -114,7 +116,7 @@ public sealed class AppUpdateService : IAppUpdateService
                     AppUpdateCheckStatus.InvalidManifest,
                     currentVersion,
                     manifest,
-                    "The update manifest is missing compatible installer metadata for this updater protocol or processor architecture.");
+                    compatibilityError ?? "The update manifest is missing compatible installer metadata for this updater protocol or processor architecture.");
             }
 
             string remoteVersion = GetComparableManifestVersion(manifest);
@@ -142,13 +144,16 @@ public sealed class AppUpdateService : IAppUpdateService
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             var release = await JsonSerializer.DeserializeAsync<GitHubReleaseResponse>(stream, s_jsonOptions, cancellationToken);
             var manifest = await CreateManifestFromGitHubReleaseAsync(release, cancellationToken);
-            if (!IsManifestUsable(manifest) || string.IsNullOrWhiteSpace(manifest!.Sha256))
+            string? compatibilityError = null;
+            if (!IsManifestUsable(manifest) ||
+                string.IsNullOrWhiteSpace(manifest!.Sha256) ||
+                !IsCurrentWindowsSupported(manifest, out compatibilityError))
             {
                 return new AppUpdateCheckResult(
                     AppUpdateCheckStatus.InvalidManifest,
                     currentVersion,
                     manifest,
-                    "The GitHub release metadata is missing required fields.");
+                    compatibilityError ?? "The GitHub release metadata is missing required fields.");
             }
 
             return IsRemoteManifestNewer(currentVersion, manifest, manifest.Version)
@@ -493,8 +498,29 @@ public sealed class AppUpdateService : IAppUpdateService
         AppUpdateManifest manifest,
         string architectureSuffix)
     {
+        KeyValuePair<string, AppUpdateInstaller> modernInstaller = manifest.Installers.FirstOrDefault(pair =>
+            string.Equals(pair.Key, architectureSuffix, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(modernInstaller.Key))
+        {
+            manifest.DownloadUrl = modernInstaller.Value.DownloadUrl;
+            manifest.Sha256 = modernInstaller.Value.Sha256;
+            manifest.Size = modernInstaller.Value.Size;
+            return IsInstallerDownloadCompatibleWithArchitecture(
+                manifest.DownloadUrl,
+                architectureSuffix);
+        }
+
         if (string.Equals(architectureSuffix, "x64", StringComparison.OrdinalIgnoreCase))
         {
+            return IsInstallerDownloadCompatibleWithArchitecture(
+                manifest.DownloadUrl,
+                architectureSuffix);
+        }
+
+        if (string.Equals(architectureSuffix, "x86", StringComparison.OrdinalIgnoreCase))
+        {
+            // No shipped fork used x86 before the generic metadata field.
+            // Still accept an x86-only legacy manifest for manual recovery.
             return IsInstallerDownloadCompatibleWithArchitecture(
                 manifest.DownloadUrl,
                 architectureSuffix);
@@ -520,6 +546,31 @@ public sealed class AppUpdateService : IAppUpdateService
         return IsInstallerDownloadCompatibleWithArchitecture(
             manifest.DownloadUrl,
             architectureSuffix);
+    }
+
+    internal static bool IsCurrentWindowsSupported(AppUpdateManifest manifest, out string? error)
+    {
+        return IsWindowsVersionSupported(Environment.OSVersion.Version, manifest, out error);
+    }
+
+    internal static bool IsWindowsVersionSupported(
+        Version osVersion,
+        AppUpdateManifest manifest,
+        out string? error)
+    {
+        error = null;
+        if (manifest.MinimumWindowsBuild <= 0)
+        {
+            return true;
+        }
+
+        if (osVersion.Major >= 10 && osVersion.Build >= manifest.MinimumWindowsBuild)
+        {
+            return true;
+        }
+
+        error = $"WINDOWS_BUILD_UNSUPPORTED:{manifest.MinimumWindowsBuild}";
+        return false;
     }
 
     private async Task<AppUpdateManifest?> CreateManifestFromGitHubReleaseAsync(
@@ -560,6 +611,7 @@ public sealed class AppUpdateService : IAppUpdateService
             ForkVersion = version,
             ForkDisplayVersion = version,
             ForkBuildNumber = ParseForkBuildNumber(release.TagName),
+            MinimumWindowsBuild = 19044,
             UpstreamVersion = AppBuildMetadata.UpstreamVersion,
             DownloadUrl = installerAsset.BrowserDownloadUrl,
             ManualDownloadUrl = DefaultManualDownloadUrl,
@@ -641,6 +693,7 @@ public sealed class AppUpdateService : IAppUpdateService
     {
         return architecture switch
         {
+            Architecture.X86 => "x86",
             Architecture.Arm64 => "arm64",
             Architecture.X64 => "x64",
             _ => string.Empty

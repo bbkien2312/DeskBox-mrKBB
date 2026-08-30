@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Diagnostics;
 using System.Text;
 using DeskBox.Helpers;
 using DeskBox.Services;
@@ -19,19 +20,22 @@ namespace DeskBox.Views;
 /// <summary>
 /// Selector kiểu iTop: chụp một ảnh nền trước khi overlay xuất hiện, sau đó
 /// người dùng có thể thấy rõ, bấm chọn cả cửa sổ hoặc kéo vùng tự do để lưu/sao chép.
-/// Desktop/taskbar không chọn cửa sổ nào nên sẽ chụp toàn màn hình hiện tại.
+/// Desktop không taskbar và toàn màn hình là hai mục tiêu tường minh, dùng lần lượt
+/// work area và monitor bounds để không nhầm với một cửa sổ đang phủ vùng nền.
 /// </summary>
 public sealed partial class ScreenshotCaptureWindow : Window
 {
     private readonly AppWindow _appWindow;
     private readonly IntPtr _hwnd;
     private readonly Win32Helper.RECT _monitorRect;
+    private readonly Win32Helper.RECT _desktopRect;
     private readonly string _snapshotPath;
     private IntPtr _selectedWindow;
     private Win32Helper.RECT _selectedRect;
     private Windows.Foundation.Point? _dragStart;
     private bool _isDraggingRegion;
     private bool _isManualRegion;
+    private bool _isDesktopCapture;
     private bool _selectionLocked;
     private bool _isCapturing;
 
@@ -39,13 +43,16 @@ public sealed partial class ScreenshotCaptureWindow : Window
     {
         InitializeComponent();
         _hwnd = WindowNative.GetWindowHandle(this);
+        Win32Helper.RECT workArea;
         if (!Win32Helper.GetCursorPos(out Win32Helper.POINT cursor) ||
-            !Win32Helper.TryGetMonitorWorkArea(cursor.X, cursor.Y, out Win32Helper.RECT monitor, out _))
+            !Win32Helper.TryGetMonitorWorkArea(cursor.X, cursor.Y, out Win32Helper.RECT monitor, out workArea))
         {
             monitor = new Win32Helper.RECT { Left = 0, Top = 0, Right = 1920, Bottom = 1080 };
+            workArea = monitor;
         }
 
         _monitorRect = monitor;
+        _desktopRect = workArea;
         WindowId windowId = Win32Interop.GetWindowIdFromWindow(_hwnd);
         _appWindow = AppWindow.GetFromWindowId(windowId);
         _appWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
@@ -64,8 +71,14 @@ public sealed partial class ScreenshotCaptureWindow : Window
             Math.Max(1, monitor.Right - monitor.Left),
             Math.Max(1, monitor.Bottom - monitor.Top)));
 
-        // Cửa sổ chỉ được Activate sau constructor, nên overlay không lọt vào ảnh nguồn.
+        // Giữ đúng thứ tự đã ổn định từ Fork 4 đến Fork 9: cấu hình kích
+        // thước trước, lấy ảnh GDI khi cửa sổ chưa topmost/chưa hiển thị, sau
+        // đó mới phủ selector lên Desktop. Luồng này độc lập hoàn toàn với
+        // Windows Graphics Capture dùng riêng cho cửa sổ đã chọn.
         _snapshotPath = CaptureMonitorSnapshot(monitor);
+        App.Log(
+            $"[Screenshot] frozen-snapshot engine=gdi phase=fork7-compatible " +
+            $"monitor={monitor.Left},{monitor.Top},{monitor.Right - monitor.Left}x{monitor.Bottom - monitor.Top}");
         FrozenScreenImage.Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(_snapshotPath));
 
         Win32Helper.SetWindowPos(
@@ -96,6 +109,7 @@ public sealed partial class ScreenshotCaptureWindow : Window
             {
                 _isDraggingRegion = true;
                 _isManualRegion = true;
+                _isDesktopCapture = false;
                 _selectedWindow = IntPtr.Zero;
             }
 
@@ -119,6 +133,7 @@ public sealed partial class ScreenshotCaptureWindow : Window
         _dragStart = e.GetCurrentPoint(FrozenScreenImage).Position;
         _isDraggingRegion = false;
         _isManualRegion = false;
+        _isDesktopCapture = false;
         FrozenScreenImage.CapturePointer(e.Pointer);
         e.Handled = true;
     }
@@ -161,6 +176,7 @@ public sealed partial class ScreenshotCaptureWindow : Window
         _dragStart = null;
         _isDraggingRegion = false;
         _isManualRegion = false;
+        _isDesktopCapture = false;
         CopyButton.Visibility = Visibility.Collapsed;
         SaveButton.Visibility = Visibility.Collapsed;
         ResetButton.Visibility = Visibility.Collapsed;
@@ -173,11 +189,47 @@ public sealed partial class ScreenshotCaptureWindow : Window
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) => Close();
 
+    private void DesktopTargetButton_Click(object sender, RoutedEventArgs e)
+    {
+        _selectedWindow = IntPtr.Zero;
+        _selectedRect = _desktopRect;
+        _isDraggingRegion = false;
+        _isManualRegion = false;
+        _isDesktopCapture = true;
+        ShowSelectionBorder(_desktopRect);
+        LockSelection("Đã chọn Desktop (không gồm taskbar)");
+    }
+
+    private void FullscreenTargetButton_Click(object sender, RoutedEventArgs e)
+    {
+        _selectedWindow = IntPtr.Zero;
+        _selectedRect = _monitorRect;
+        _isDraggingRegion = false;
+        _isManualRegion = false;
+        _isDesktopCapture = false;
+        SelectionBorder.Visibility = Visibility.Collapsed;
+        LockSelection("Đã chọn toàn màn hình (gồm taskbar)");
+    }
+
     private async void RootGrid_KeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key == Windows.System.VirtualKey.Escape)
         {
             Close();
+            return;
+        }
+
+        if (!_selectionLocked && e.Key == Windows.System.VirtualKey.D)
+        {
+            DesktopTargetButton_Click(sender, e);
+            e.Handled = true;
+            return;
+        }
+
+        if (!_selectionLocked && e.Key == Windows.System.VirtualKey.F)
+        {
+            FullscreenTargetButton_Click(sender, e);
+            e.Handled = true;
             return;
         }
 
@@ -205,10 +257,15 @@ public sealed partial class ScreenshotCaptureWindow : Window
         if (_selectedWindow == IntPtr.Zero)
         {
             SelectionBorder.Visibility = Visibility.Collapsed;
-            SelectionHintText.Text = "Toàn màn hình (bấm để khóa vùng chụp)";
+            _isDesktopCapture = IsPointInside(cursor, _desktopRect);
+            _selectedRect = _isDesktopCapture ? _desktopRect : _monitorRect;
+            SelectionHintText.Text = _isDesktopCapture
+                ? "Desktop (không gồm taskbar; bấm để khóa vùng chụp)"
+                : "Toàn màn hình (gồm taskbar; bấm để khóa vùng chụp)";
             return;
         }
 
+        _isDesktopCapture = false;
         SelectionHintText.Text = GetWindowTitle(_selectedWindow);
         ShowSelectionBorder(_selectedRect);
     }
@@ -279,7 +336,7 @@ public sealed partial class ScreenshotCaptureWindow : Window
         SaveButton.IsEnabled = false;
         try
         {
-            Win32Helper.RECT captureRect = _isManualRegion || _selectedWindow != IntPtr.Zero
+            Win32Helper.RECT captureRect = _isManualRegion || _isDesktopCapture || _selectedWindow != IntPtr.Zero
                 ? _selectedRect
                 : _monitorRect;
             // Chỉ cửa sổ đã chọn dùng Windows Graphics Capture để lấy nội dung
@@ -330,7 +387,13 @@ public sealed partial class ScreenshotCaptureWindow : Window
 
     private static string CaptureMonitorSnapshot(Win32Helper.RECT rect) => CaptureBitmapToPng(rect, "frozen");
 
-    private string GetCaptureMode() => _isManualRegion ? "region" : _selectedWindow == IntPtr.Zero ? "monitor" : "window";
+    private string GetCaptureMode() => _isManualRegion
+        ? "region"
+        : _selectedWindow != IntPtr.Zero
+            ? "window"
+            : _isDesktopCapture
+                ? "desktop"
+                : "monitor";
 
     private string CropFrozenSnapshot(Win32Helper.RECT rect)
     {
@@ -412,12 +475,76 @@ public sealed partial class ScreenshotCaptureWindow : Window
                 return true;
             }
 
+            // NVIDIA App có thể giữ các cửa sổ overlay top-level quanh vùng
+            // taskbar. Selector không được coi chúng là "cửa sổ cần chụp";
+            // Desktop/taskbar ở vị trí này phải tiếp tục là chế độ toàn màn hình.
+            if (IsNvidiaOverlayProcess(processId))
+            {
+                App.LogVerbose($"[Screenshot] Ignored NVIDIA overlay window class={className} pid={processId}");
+                return true;
+            }
+
+            // TextInputHost tạo một CoreWindow trong suốt phủ monitor để nhận
+            // input của Windows. Nó không phải cửa sổ ứng dụng mà người dùng
+            // muốn chụp; nếu không bỏ qua thì click taskbar/khoảng trống sẽ
+            // nhầm sang nhánh WGC và xuất ảnh đen.
+            if (IsSystemInputOverlayProcess(processId, className))
+            {
+                App.LogVerbose($"[Screenshot] Ignored system input overlay class={className} pid={processId}");
+                return true;
+            }
+
             result = window;
             selectedRect = candidate;
             return false;
         }, IntPtr.Zero);
         rect = selectedRect;
         return result;
+    }
+
+    private static bool IsPointInside(Win32Helper.POINT point, Win32Helper.RECT rect) =>
+        point.X >= rect.Left && point.X < rect.Right &&
+        point.Y >= rect.Top && point.Y < rect.Bottom;
+
+    private static bool IsNvidiaOverlayProcess(uint processId)
+    {
+        try
+        {
+            using Process process = Process.GetProcessById(checked((int)processId));
+            return process.ProcessName.Equals("NVIDIA Overlay", StringComparison.OrdinalIgnoreCase) ||
+                   process.ProcessName.Equals("NVIDIA Share", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsSystemInputOverlayProcess(uint processId, string className)
+    {
+        if (!className.Equals("Windows.UI.Core.CoreWindow", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            using Process process = Process.GetProcessById(checked((int)processId));
+            return process.ProcessName.Equals("TextInputHost", StringComparison.OrdinalIgnoreCase) ||
+                   process.ProcessName.Equals("InputApp", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     private static bool TryGetCaptureBounds(IntPtr window, out Win32Helper.RECT bounds) =>

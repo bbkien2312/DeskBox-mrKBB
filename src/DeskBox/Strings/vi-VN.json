@@ -993,6 +993,7 @@
     "Settings.Update.Detail.Timeout": "Kiểm tra cập nhật fork hết thời gian. Hãy thử lại hoặc mở trang phát hành fork.",
     "Settings.Update.Detail.NetworkUnavailable": "DeskBox không kết nối được máy chủ cập nhật fork. Hãy kiểm tra mạng hoặc mở trang phát hành fork.",
     "Settings.Update.Detail.InvalidManifest": "Metadata cập nhật fork không hợp lệ. Bạn có thể mở trang phát hành fork.",
+    "Settings.Update.Detail.UnsupportedWindows": "Bản cập nhật này yêu cầu Windows 10 build {0} trở lên.",
     "Settings.Update.Detail.HashMissing": "Gói cập nhật fork thiếu dữ liệu xác thực. Hãy mở trang phát hành fork.",
     "Settings.Update.Detail.HashMismatch": "Gói cập nhật fork không vượt qua xác thực. Hãy tải lại hoặc mở trang phát hành fork.",
     "Settings.Update.Detail.DownloadMissing": "The installer is missing. Download the update again.",

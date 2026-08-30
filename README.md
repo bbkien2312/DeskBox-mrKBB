@@ -1,6 +1,6 @@
 # DeskBox
 
-> Ghi chú fork (29/08/2026, Fork 9): khi chụp **một cửa sổ đã chọn**, fork dùng Windows Graphics Capture theo HWND để ảnh không bị các cửa sổ khác che. Chụp Desktop/toàn màn hình/kéo vùng tự do vẫn giữ snapshot cũ. Installer x64 đã phát hành tại tag `v1.4.2.1-fork.9`; chi tiết triển khai và kiểm thử được ghi bằng tiếng Việt trong `AGENTS.md` của fork.
+> Ghi chú fork (29/08/2026): Fork 10 đang kiểm thử local, sửa snapshot Desktop/toàn màn hình bị đen và bổ sung x86. Bản đã phát hành online vẫn là `1.4.2.1-fork.9`; chi tiết triển khai và kiểm thử được ghi bằng tiếng Việt trong `AGENTS.md`.
 
 **A free, open-source Windows desktop organizer with native-feeling WinUI 3 widgets.**
 
@@ -9,7 +9,7 @@ English | [简体中文](README.zh-CN.md)
 [![CI](https://github.com/Tianyu199509/DeskBox/actions/workflows/ci.yml/badge.svg)](https://github.com/Tianyu199509/DeskBox/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/badge/release-1.4.2-2563EB.svg)](https://github.com/Tianyu199509/DeskBox/releases/tag/v1.4.2)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D4.svg)](#system-requirements)
-[![x64 and ARM64](https://img.shields.io/badge/architecture-x64%20%7C%20ARM64-5C2D91.svg)](#download)
+[![x86, x64 and ARM64](https://img.shields.io/badge/architecture-x86%20%7C%20x64%20%7C%20ARM64-5C2D91.svg)](#download)
 [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 
 ![DeskBox Windows desktop organizer with file, todo, search, weather, and music widgets](docs/images/brand/readme-hero-1-3-7-dark-en.png)
@@ -24,7 +24,7 @@ Fork duy trì tại <https://github.com/bbkien2312/DeskBox-mrKBB> bổ sung các
 - Sau khi vùng chụp đã khóa, nhấn `Ctrl+C` hoặc nút **Sao chép (Ctrl+C)** để đưa ảnh vào Clipboard Windows. Không có hotkey chụp toàn cục mới và không tạo thêm cache ảnh trong RAM.
 - Mọi bản fork phát hành phải tăng riêng `forkBuildNumber`, upload installer/checksum lên GitHub Release và cập nhật `release/stable.json`; không dùng số phiên bản upstream để quyết định update.
 
-Bản hiện hành là [1.4.2.1-fork.8](https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.8). Installer x64 online có SHA-256 `66208975EC78986B8EF1EA39B4DBD8A30572A030DC793F572544E0B50958AAF6`; nó tự tải dependency còn thiếu theo cơ chế setup hiện có.
+Bản phát hành hiện hành là [1.4.2.1-fork.9](https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.9). Fork 10 sẽ phát hành ba installer online x86/x64/ARM64 sau khi test Windows 10 x86 hoàn tất; setup tự tải dependency đúng kiến trúc khi thiếu.
 
 ## Mica and Acrylic on the desktop
 
@@ -38,7 +38,7 @@ DeskBox uses native-feeling Windows materials and keeps ordinary desktop files a
 
 | | |
 | --- | --- |
-| **Platform** | Windows 10/11, x64 and ARM64 |
+| **Platform** | Windows 10/11 build 19044+, x86, x64 and ARM64 |
 | **Technology** | C#, WinUI 3, .NET 10, Windows App SDK 2.2 |
 | **Storage model** | Local-first; files, notes, tasks, settings, and layouts remain on the PC |
 | **Languages** | English, Simplified Chinese, Japanese, German, Brazilian Portuguese, Hindi, Spanish, French, Arabic, Bengali, Russian |
@@ -161,7 +161,7 @@ Capsule privacy mode hides selected text in the collapsed presentation; it is a 
 ## System requirements
 
 - Windows 10 version 21H2 (build 19044) or later; Windows 11 version 22H2 or later for the full visual treatment.
-- x64 or ARM64 processor matching the installer.
+- x86, x64, or ARM64 processor matching the installer. The x86 installer is for a 32-bit Windows installation; it is not needed merely because an app is 32-bit on 64-bit Windows.
 - .NET 10 Runtime and Windows App Runtime 2.2; setup can install either dependency when missing.
 
 On Windows 10, unsupported materials, rounded corners, and some animations automatically fall back to compatible visuals; file sync, drag-and-drop, and core widget behavior are validated against the compatibility floor.
@@ -189,7 +189,7 @@ Both locations can be backed up from DeskBox settings.
 
 ### Which installer should I choose?
 
-Choose x64 for almost all Intel and AMD Windows PCs. Choose ARM64 for native Windows on ARM devices such as Snapdragon PCs. Check **Settings → System → About → System type** if unsure.
+Choose x64 for almost all Intel and AMD Windows PCs. Choose x86 only when Windows itself is 32-bit. Choose ARM64 for native Windows on ARM devices such as Snapdragon PCs. Check **Settings → System → About → System type** if unsure.
 
 ### Why can the installer need the internet?
 
@@ -215,6 +215,7 @@ Create framework-dependent Release outputs:
 
 ```powershell
 dotnet publish .\src\DeskBox\DeskBox.csproj --configuration Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:SelfContained=false -p:WindowsAppSDKSelfContained=false -o .\artifacts\publish\DeskBox\x64 -v:minimal
+dotnet publish .\src\DeskBox\DeskBox.csproj --configuration Release -p:Platform=x86 -p:RuntimeIdentifier=win-x86 -p:SelfContained=false -p:WindowsAppSDKSelfContained=false -o .\artifacts\publish\DeskBox\x86 -v:minimal
 dotnet publish .\src\DeskBox\DeskBox.csproj --configuration Release -p:Platform=ARM64 -p:RuntimeIdentifier=win-arm64 -p:SelfContained=false -p:WindowsAppSDKSelfContained=false -o .\artifacts\publish\DeskBox\arm64 -v:minimal
 ```
 
@@ -222,6 +223,7 @@ With Inno Setup 6 or newer installed, compile both installers:
 
 ```powershell
 ISCC.exe .\installer\DeskBox.iss
+ISCC.exe .\installer\DeskBox.x86.iss
 ISCC.exe .\installer\DeskBox.arm64.iss
 ```
 
@@ -229,6 +231,7 @@ Expected outputs:
 
 ```text
 Output\DeskBox_Setup_1.4.2_x64.exe
+Output\DeskBox_Setup_1.4.2_x86.exe
 Output\DeskBox_Setup_1.4.2_arm64.exe
 ```
 
@@ -238,7 +241,7 @@ Output\DeskBox_Setup_1.4.2_arm64.exe
 src\DeskBox                 WinUI 3 application
 src\DeskBox.Updater         direct-release updater helper
 tests\DeskBox.Tests         service and policy tests
-installer                   x64/ARM64 Inno Setup scripts
+installer                   x86/x64/ARM64 Inno Setup scripts
 docs\user-guide             product documentation
 docs\images                 README and release imagery
 docs\releases               release copy and test checklists

@@ -16,12 +16,16 @@ public static class IconHelper
     // evicting an inactive cache entry does not make the displayed thumbnail
     // disappear; it only prevents repeated background refreshes from growing
     // the global cache indefinitely.
-    private const int MaxIconCacheEntries = 96;
-    private const long MaxIconCacheBytes = 12L * 1024 * 1024;
-    private const int MaxDecodedBitmapCacheEntries = 64;
-    private const long MaxDecodedBitmapCacheBytes = 16L * 1024 * 1024;
-    private const int MaxThumbnailCacheEntries = 32;
-    private const long MaxThumbnailCacheBytes = 8L * 1024 * 1024;
+    // A 32-bit process has a much smaller virtual address space. Keep the
+    // active image caches conservative there; visible XAML images keep their
+    // own reference, so LRU eviction does not make an icon disappear.
+    private static readonly bool s_isX86Process = RuntimeInformation.ProcessArchitecture == Architecture.X86;
+    private static int MaxIconCacheEntries => s_isX86Process ? 48 : 96;
+    private static long MaxIconCacheBytes => (s_isX86Process ? 6L : 12L) * 1024 * 1024;
+    private static int MaxDecodedBitmapCacheEntries => s_isX86Process ? 24 : 64;
+    private static long MaxDecodedBitmapCacheBytes => (s_isX86Process ? 6L : 16L) * 1024 * 1024;
+    private static int MaxThumbnailCacheEntries => s_isX86Process ? 12 : 32;
+    private static long MaxThumbnailCacheBytes => (s_isX86Process ? 3L : 8L) * 1024 * 1024;
     private const string SharedCacheScope = "shared";
 
     // Icon bytes cache: path → PNG bytes (for shell icons, not image thumbnails)
@@ -55,8 +59,8 @@ public static class IconHelper
             ReleasedIconByteEntries > 0;
     }
 
-    private static readonly SemaphoreSlim s_iconLoadSemaphore = new(4, 4);
-    private static readonly SemaphoreSlim s_thumbLoadSemaphore = new(2, 2);
+    private static readonly SemaphoreSlim s_iconLoadSemaphore = new(s_isX86Process ? 2 : 4, s_isX86Process ? 2 : 4);
+    private static readonly SemaphoreSlim s_thumbLoadSemaphore = new(s_isX86Process ? 1 : 2, s_isX86Process ? 1 : 2);
 
     private sealed record IconSource(string Path, int IconIndex = 0, bool UsesExplicitIconIndex = false);
 

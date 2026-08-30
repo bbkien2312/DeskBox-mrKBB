@@ -27,6 +27,12 @@ public sealed class AppUpdateManifest
     public bool Mandatory { get; set; }
     public string DownloadUrl { get; set; } = string.Empty;
     /// <summary>
+    /// Installer metadata keyed by processor architecture (x86, x64, arm64).
+    /// New fork manifests use this field while the primary and ARM64 fields
+    /// below remain so older fork clients can continue to update safely.
+    /// </summary>
+    public Dictionary<string, AppUpdateInstaller> Installers { get; set; } = [];
+    /// <summary>
     /// Optional architecture-specific installer metadata. Older manifests can
     /// continue to use the primary fields for a single architecture.
     /// </summary>
@@ -37,6 +43,8 @@ public sealed class AppUpdateManifest
     public string Arm64Sha256 { get; set; } = string.Empty;
     public long Size { get; set; }
     public long Arm64Size { get; set; }
+    /// <summary>Lowest supported Windows build for this release; 0 means unspecified.</summary>
+    public int MinimumWindowsBuild { get; set; }
     public string ReleaseNotesUrl { get; set; } = string.Empty;
     public Dictionary<string, string> Summary { get; set; } = [];
     /// <summary>
@@ -157,6 +165,13 @@ public enum AppUpdateCheckStatus
     InvalidManifest,
     NotFound,
     Failed
+}
+
+public sealed class AppUpdateInstaller
+{
+    public string DownloadUrl { get; set; } = string.Empty;
+    public string Sha256 { get; set; } = string.Empty;
+    public long Size { get; set; }
 }
 
 public sealed class AppUpdateCheckResult

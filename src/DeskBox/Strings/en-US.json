@@ -992,6 +992,7 @@
     "Settings.Update.Detail.Timeout": "The fork update check timed out. Try again later or open the fork releases page.",
     "Settings.Update.Detail.NetworkUnavailable": "DeskBox could not connect to the fork update server. Check the network or open the fork releases page.",
     "Settings.Update.Detail.InvalidManifest": "Fork update metadata is unavailable. You can open the fork releases page.",
+    "Settings.Update.Detail.UnsupportedWindows": "This update requires Windows 10 build {0} or newer.",
     "Settings.Update.Detail.HashMissing": "The fork update package has no verification data. Open the fork releases page.",
     "Settings.Update.Detail.HashMismatch": "The fork update package failed verification. Download again or open the fork releases page.",
     "Settings.Update.Detail.DownloadMissing": "The installer is missing. Download the update again.",

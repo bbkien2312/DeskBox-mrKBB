@@ -992,6 +992,7 @@
   "Settings.Update.Detail.Timeout": "انتهت مهلة التحقق من التحديث. حاول مرة أخرى لاحقًا أو قم بالتنزيل من الموقع الرسمي.",
   "Settings.Update.Detail.NetworkUnavailable": "تعذر على DeskBox الاتصال بخادم التحديث. تحقق من الشبكة أو قم بالتنزيل من الموقع الرسمي.",
   "Settings.Update.Detail.InvalidManifest": "تحديث بيانات التعريف غير متوفر. يمكنك تحميل من الموقع الرسمي.",
+  "Settings.Update.Detail.UnsupportedWindows": "يتطلب هذا التحديث Windows 10 بالإصدار {0} أو أحدث.",
   "Settings.Update.Detail.HashMissing": "لا تحتوي حزمة التحديث على بيانات التحقق. تحميل من الموقع الرسمي.",
   "Settings.Update.Detail.HashMismatch": "فشل التحقق من حزمة التحديث. قم بالتنزيل مرة أخرى أو احصل عليه من الموقع الرسمي.",
   "Settings.Update.Detail.DownloadMissing": "المثبت مفقود. قم بتنزيل التحديث مرة أخرى.",

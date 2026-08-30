@@ -322,7 +322,9 @@ public partial class SettingsViewModel
             _showManualUpdateFallback = IsDirectInstallerUpdateDelivery;
             _lastUpdateDownloadFailed = false;
             UpdateStatusText = _localizationService.T("Settings.Update.Status.Failed");
-            UpdateDetailText = _localizationService.T("Settings.Update.Detail.InvalidManifest");
+            UpdateDetailText = string.IsNullOrWhiteSpace(result.ErrorMessage)
+                ? _localizationService.T("Settings.Update.Detail.InvalidManifest")
+                : GetFriendlyUpdateErrorText(result.ErrorMessage);
         }
         else
         {
@@ -381,6 +383,13 @@ public partial class SettingsViewModel
         if (errorMessage.Contains("STORE_UNAVAILABLE", StringComparison.OrdinalIgnoreCase))
         {
             return _localizationService.T("Settings.Update.Detail.StoreUnavailable");
+        }
+
+        const string unsupportedWindowsPrefix = "WINDOWS_BUILD_UNSUPPORTED:";
+        if (errorMessage.StartsWith(unsupportedWindowsPrefix, StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(errorMessage[unsupportedWindowsPrefix.Length..], out int minimumBuild))
+        {
+            return _localizationService.Format("Settings.Update.Detail.UnsupportedWindows", minimumBuild);
         }
 
         if (errorMessage.Contains("404", StringComparison.OrdinalIgnoreCase) ||

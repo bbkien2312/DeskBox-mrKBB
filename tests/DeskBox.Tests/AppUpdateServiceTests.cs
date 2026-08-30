@@ -16,10 +16,12 @@ public sealed class AppUpdateServiceTests : IDisposable
     public void InstallerAssetSelection_UsesTheCurrentProcessArchitecture()
     {
         Assert.Equal("x64", AppUpdateService.GetInstallerArchitectureSuffix(Architecture.X64));
+        Assert.Equal("x86", AppUpdateService.GetInstallerArchitectureSuffix(Architecture.X86));
         Assert.Equal("arm64", AppUpdateService.GetInstallerArchitectureSuffix(Architecture.Arm64));
         Assert.True(AppUpdateService.IsInstallerAssetName("DeskBox_Setup_1.2.4_x64.exe", "x64"));
         Assert.False(AppUpdateService.IsInstallerAssetName("DeskBox_Setup_1.2.4_arm64.exe", "x64"));
         Assert.True(AppUpdateService.IsInstallerAssetName("DeskBox_Setup_1.2.4_arm64.exe", "arm64"));
+        Assert.True(AppUpdateService.IsInstallerAssetName("DeskBox_Setup_1.2.4_x86.exe", "x86"));
         Assert.True(AppUpdateService.IsInstallerDownloadCompatibleWithArchitecture(
             "https://example.com/DeskBox_Setup_1.2.4_arm64.exe",
             "arm64"));
@@ -205,6 +207,46 @@ public sealed class AppUpdateServiceTests : IDisposable
         Assert.Equal(23423211, result.Manifest.Size);
         Assert.Equal("https://github.com/Tianyu199509/DeskBox/releases/tag/v1.2.4", result.Manifest.ReleaseNotesUrl);
         Assert.Equal("## Highlights\n- Improved update flow", result.Manifest.GetReleaseNotesForLocale("en-US"));
+    }
+
+    [Fact]
+    public void ManifestInstallerSelection_UsesIndependentX86Metadata()
+    {
+        var manifest = new AppUpdateManifest
+        {
+            Version = "1.3.8",
+            DownloadUrl = "https://example.com/DeskBox_Setup_1.3.8_x64.exe",
+            Sha256 = new string('A', 64),
+            Size = 101,
+            Installers =
+            {
+                ["x86"] = new AppUpdateInstaller
+                {
+                    DownloadUrl = "https://example.com/DeskBox_Setup_1.3.8_x86.exe",
+                    Sha256 = new string('C', 64),
+                    Size = 303
+                }
+            }
+        };
+
+        Assert.True(AppUpdateService.TrySelectInstallerForArchitecture(manifest, "x86"));
+        Assert.EndsWith("_x86.exe", manifest.DownloadUrl, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(new string('C', 64), manifest.Sha256);
+        Assert.Equal(303, manifest.Size);
+    }
+
+    [Fact]
+    public void WindowsBuildCompatibility_RejectsUnsupportedWindowsBeforeDownload()
+    {
+        var manifest = new AppUpdateManifest { MinimumWindowsBuild = 19044 };
+
+        Assert.False(AppUpdateService.IsWindowsVersionSupported(
+            new Version(10, 0, 19043), manifest, out string? error));
+        Assert.Contains("19044", error, StringComparison.Ordinal);
+        Assert.True(AppUpdateService.IsWindowsVersionSupported(
+            new Version(10, 0, 19044), manifest, out _));
+        Assert.True(AppUpdateService.IsWindowsVersionSupported(
+            new Version(10, 0, 22631), manifest, out _));
     }
 
     [Fact]

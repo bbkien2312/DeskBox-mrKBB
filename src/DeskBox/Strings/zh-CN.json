@@ -1138,6 +1138,7 @@
     "QuickCapture.SavedToFileWidget": "已保存到文件格子",
     "Settings.Dialog.AboutMeClose": "关闭",
     "Settings.Update.Detail.InvalidManifest": "更新信息暂不可用，可使用官网下载。",
+    "Settings.Update.Detail.UnsupportedWindows": "此更新需要 Windows 10 版本 {0} 或更高版本。",
     "Settings.Update.InstallStartFailedBody": "请重新下载更新，或前往 GitHub Releases 手动安装。",
     "Widget.AddFileFailed": "添加文件失败",
     "Settings.QuickCapture.Description": "记录文本、链接和常用内容",

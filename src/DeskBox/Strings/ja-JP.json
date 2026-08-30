@@ -989,6 +989,7 @@
     "Settings.Update.Detail.Timeout": "アップデート確認がタイムアウトしました。後でもう一度お試しいただくか、公式サイトからダウンロードしてください。",
     "Settings.Update.Detail.NetworkUnavailable": "アップデートサーバーに接続できませんでした。ネットワークを確認するか、公式サイトからダウンロードしてください。",
     "Settings.Update.Detail.InvalidManifest": "アップデートメタデータが利用できません。公式サイトからダウンロードできます。",
+    "Settings.Update.Detail.UnsupportedWindows": "この更新には Windows 10 ビルド {0} 以降が必要です。",
     "Settings.Update.Detail.HashMissing": "アップデートパッケージに検証データがありません。公式サイトからダウンロードしてください。",
     "Settings.Update.Detail.HashMismatch": "アップデートパッケージが検証に失敗しました。再度ダウンロードするか、公式サイトから入手してください。",
     "Settings.Update.Detail.DownloadMissing": "インストーラーが見つかりません。アップデートを再度ダウンロードしてください。",

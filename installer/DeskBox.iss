@@ -8,7 +8,21 @@
 #define MyAppPublisher "朱天雨"
 #define MyAppExeName "DeskBox.exe"
 #define MyAppOutputBaseName "DeskBox_Setup"
+#ifndef MyAppRuntimeArchitecture
 #define MyAppRuntimeArchitecture "x64"
+#endif
+#ifndef MyAppOutputArchitectureSuffix
+#define MyAppOutputArchitectureSuffix "x64"
+#endif
+#ifndef MyAppArchitecturesAllowed
+#define MyAppArchitecturesAllowed "x64compatible"
+#endif
+#ifndef MyAppUse64BitInstallMode
+#define MyAppUse64BitInstallMode 1
+#endif
+#ifndef MyAppDependenciesScript
+#define MyAppDependenciesScript "DeskBox.Dependencies.iss"
+#endif
 #ifndef MyAppReleaseDir
 #define MyAppReleaseDir "..\artifacts\publish\DeskBox\x64"
 #endif
@@ -25,8 +39,10 @@ AppPublisher={#MyAppPublisher}
 AppComments=安装包会按需检测并下载 .NET 10 Runtime 和 Windows App Runtime 2.2。
 UninstallDisplayName={#MyAppName} {#MyAppVersion}
 UninstallDisplayIcon={app}\Assets\deskbox.ico
-ArchitecturesAllowed=x64compatible
-ArchitecturesInstallIn64BitMode=x64compatible
+ArchitecturesAllowed={#MyAppArchitecturesAllowed}
+#if MyAppUse64BitInstallMode
+ArchitecturesInstallIn64BitMode={#MyAppArchitecturesAllowed}
+#endif
 DefaultDirName={code:GetDefaultInstallDir}
 DisableProgramGroupPage=yes
 DisableDirPage=no
@@ -45,7 +61,7 @@ CloseApplications=force
 CloseApplicationsFilter={#MyAppExeName}
 RestartApplications=no
 OutputDir={#MyAppOutputDir}
-OutputBaseFilename={#MyAppOutputBaseName}_{#MyAppVersion}_x64
+OutputBaseFilename={#MyAppOutputBaseName}_{#MyAppVersion}_{#MyAppOutputArchitectureSuffix}
 SetupIconFile=..\src\DeskBox\Assets\deskbox.ico
 VersionInfoVersion={#MyAppVersionInfo}
 VersionInfoProductVersion={#MyAppVersionInfo}
@@ -228,7 +244,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 #include "DeskBox.Installation.iss"
 #include "DeskBox.Migration.iss"
-#include "DeskBox.Dependencies.iss"
+#include MyAppDependenciesScript
 #include "DeskBox.Uninstall.iss"
 
 [Registry]

@@ -992,6 +992,7 @@
   "Settings.Update.Detail.Timeout": "Se agotó el tiempo de espera de la verificación de actualización. Vuelva a intentarlo más tarde o descárguelo del sitio web oficial.",
   "Settings.Update.Detail.NetworkUnavailable": "DeskBox no pudo conectarse al servidor de actualización. Consulte la red o descárguelo del sitio web oficial.",
   "Settings.Update.Detail.InvalidManifest": "Los metadatos de actualización no están disponibles. Puedes descargarlo desde el sitio web oficial.",
+  "Settings.Update.Detail.UnsupportedWindows": "Esta actualización requiere Windows 10 compilación {0} o posterior.",
   "Settings.Update.Detail.HashMissing": "El paquete de actualización no tiene datos de verificación. Descargar desde el sitio web oficial.",
   "Settings.Update.Detail.HashMismatch": "El paquete de actualización no superó la verificación. Descárguelo nuevamente o consígalo desde el sitio web oficial.",
   "Settings.Update.Detail.DownloadMissing": "Falta el instalador. Descargue la actualización nuevamente.",

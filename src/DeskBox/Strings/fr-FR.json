@@ -992,6 +992,7 @@
   "Settings.Update.Detail.Timeout": "La vérification de la mise à jour a expiré. Réessayez plus tard ou téléchargez depuis le site officiel.",
   "Settings.Update.Detail.NetworkUnavailable": "DeskBox n'a pas pu se connecter au serveur de mise à jour. Vérifiez le réseau ou téléchargez depuis le site officiel.",
   "Settings.Update.Detail.InvalidManifest": "La mise à jour des métadonnées n'est pas disponible. Vous pouvez télécharger sur le site officiel.",
+  "Settings.Update.Detail.UnsupportedWindows": "Cette mise à jour nécessite Windows 10 build {0} ou version ultérieure.",
   "Settings.Update.Detail.HashMissing": "Le package de mise à jour ne contient aucune donnée de vérification. Téléchargez depuis le site officiel.",
   "Settings.Update.Detail.HashMismatch": "La vérification du package de mise à jour a échoué. Téléchargez-le à nouveau ou récupérez-le sur le site officiel.",
   "Settings.Update.Detail.DownloadMissing": "Le programme d'installation est manquant. Téléchargez à nouveau la mise à jour.",

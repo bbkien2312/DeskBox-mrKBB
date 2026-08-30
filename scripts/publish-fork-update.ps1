@@ -16,8 +16,8 @@ param(
     [ValidateSet("Release", "Debug")]
     [string]$Configuration = "Release",
 
-    [ValidateSet("x64", "ARM64")]
-    [string]$Platform = "x64",
+    [ValidateSet("x86", "x64", "ARM64")]
+    [string[]]$Platform = @("x64", "ARM64", "x86"),
 
     [int]$ForkBuildNumber = 0,
 
@@ -94,8 +94,19 @@ function Get-ReleaseAssetName {
         [string]$Architecture
     )
 
-    $suffix = if ($Architecture -eq "ARM64") { "arm64" } else { "x64" }
+    $suffix = Get-ArchitectureSuffix -Architecture $Architecture
     return "DeskBox_Setup_${Version}_${suffix}.exe"
+}
+
+function Get-ArchitectureSuffix {
+    param([string]$Architecture)
+
+    switch ($Architecture) {
+        "x86" { return "x86" }
+        "x64" { return "x64" }
+        "ARM64" { return "arm64" }
+        default { throw "Kiến trúc không hợp lệ: $Architecture" }
+    }
 }
 
 function Get-ReleaseApiHeaders {
@@ -184,97 +195,113 @@ else {
 }
 $displayVersion = "$ForkVersion-fork.$ForkBuildNumber"
 $tag = if ([string]::IsNullOrWhiteSpace($ReleaseTag)) { "v$displayVersion" } else { $ReleaseTag.Trim() }
-$architectureSuffix = if ($Platform -eq "ARM64") { "arm64" } else { "x64" }
-$assetName = Get-ReleaseAssetName -Version $ForkVersion -Architecture $Platform
-
-$publishRoot = Join-Path $repoRoot "artifacts\publish\DeskBox\$($architectureSuffix)"
 $outputRoot = Join-Path $repoRoot "Output"
 $installerRoot = Join-Path $repoRoot "installer"
-$installerScript = if ($Platform -eq "ARM64") {
-    Join-Path $installerRoot "DeskBox.arm64.iss"
-}
-else {
-    Join-Path $installerRoot "DeskBox.iss"
+$requestedPlatforms = @($Platform | Select-Object -Unique)
+if ($requestedPlatforms.Count -eq 0) {
+    throw "At least one Platform is required."
 }
 
-if (-not $SkipBuild) {
-    $dotnet = "dotnet"
-    $dotnetArguments = @(
-        "publish",
-        $projectPath,
-        "--configuration", $Configuration,
-        "-p:Platform=$Platform",
-        "-p:RuntimeIdentifier=win-$($architectureSuffix)",
-        "-p:SelfContained=false",
-        "-p:WindowsAppSDKSelfContained=false",
-        "-p:DeskBoxBuildNumber=$ForkBuildNumber",
-        "-p:DeskBoxForkCommit=$forkCommit",
-        "-o", $publishRoot,
-        "-v:minimal"
-    )
-    Invoke-NativeChecked -FilePath $dotnet -ArgumentList $dotnetArguments
+if (-not [string]::IsNullOrWhiteSpace($InstallerPath) -and $requestedPlatforms.Count -ne 1) {
+    throw "-InstallerPath is only valid for one Platform; multi-architecture releases use standard installer names."
+}
 
-    $innoCandidates = @(
-        (Join-Path $repoRoot ".tools\inno\ISCC.exe"),
-        (Join-Path (Split-Path $repoRoot -Parent) ".tools\inno\ISCC.exe")
-    )
-    $iscc = $innoCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-    if ([string]::IsNullOrWhiteSpace($iscc)) {
-        throw "Không tìm thấy Inno Setup compiler. Đã kiểm tra: $($innoCandidates -join '; ')"
+$innoCandidates = @(
+    (Join-Path $repoRoot ".tools\inno\ISCC.exe"),
+    (Join-Path (Split-Path $repoRoot -Parent) ".tools\inno\ISCC.exe")
+)
+$iscc = $innoCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $SkipBuild -and [string]::IsNullOrWhiteSpace($iscc)) {
+    throw "Inno Setup compiler was not found. Checked: $($innoCandidates -join '; ')"
+}
+
+$installerRecords = @()
+foreach ($targetPlatform in $requestedPlatforms) {
+    $architectureSuffix = Get-ArchitectureSuffix -Architecture $targetPlatform
+    $assetName = Get-ReleaseAssetName -Version $ForkVersion -Architecture $targetPlatform
+    $publishRoot = Join-Path $repoRoot "artifacts\publish\DeskBox\$architectureSuffix"
+    $installerScript = switch ($targetPlatform) {
+        "x86" { Join-Path $installerRoot "DeskBox.x86.iss" }
+        "ARM64" { Join-Path $installerRoot "DeskBox.arm64.iss" }
+        default { Join-Path $installerRoot "DeskBox.iss" }
     }
 
-    Invoke-NativeChecked -FilePath $iscc -ArgumentList @($installerScript)
+    if (-not $SkipBuild) {
+        Invoke-NativeChecked -FilePath "dotnet" -ArgumentList @(
+            "publish", $projectPath,
+            "--configuration", $Configuration,
+            "-p:Platform=$targetPlatform",
+            "-p:RuntimeIdentifier=win-$architectureSuffix",
+            "-p:SelfContained=false",
+            "-p:WindowsAppSDKSelfContained=false",
+            "-p:DeskBoxBuildNumber=$ForkBuildNumber",
+            "-p:DeskBoxForkCommit=$forkCommit",
+            "-o", $publishRoot,
+            "-v:minimal")
+        Invoke-NativeChecked -FilePath $iscc -ArgumentList @($installerScript)
+    }
 
-    if ($BuildOfflinePrerequisites) {
-        if ($Platform -ne "x64") {
-            throw "Gói prerequisites offline hiện mới hỗ trợ x64. Không thể build với Platform=$Platform."
-        }
+    $resolvedInstallerPath = if ([string]::IsNullOrWhiteSpace($InstallerPath)) {
+        Join-Path $outputRoot $assetName
+    }
+    elseif ([System.IO.Path]::IsPathRooted($InstallerPath)) {
+        $InstallerPath
+    }
+    else {
+        Join-Path $repoRoot $InstallerPath
+    }
 
-        $preparePrerequisitesScript = Join-Path $repoRoot "scripts\prepare-offline-prerequisites.ps1"
-        Invoke-NativeChecked -FilePath "powershell.exe" -ArgumentList @(
-            "-NoProfile",
-            "-ExecutionPolicy", "Bypass",
-            "-File", $preparePrerequisitesScript,
-            "-Platform", "x64")
+    $resolvedInstallerPath = [System.IO.Path]::GetFullPath($resolvedInstallerPath)
+    if (-not (Test-Path $resolvedInstallerPath -PathType Leaf)) {
+        throw "Installer ${architectureSuffix} was not found: $resolvedInstallerPath"
+    }
 
-        $offlineInstallerScript = Join-Path $installerRoot "DeskBox.Prerequisites.iss"
-        Invoke-NativeChecked -FilePath $iscc -ArgumentList @($offlineInstallerScript)
-        $AdditionalAssetPath += (Join-Path $outputRoot "DeskBox_Prerequisites_${ForkVersion}_x64.exe")
+    $actualName = [System.IO.Path]::GetFileName($resolvedInstallerPath)
+    if ($actualName -ne $assetName) {
+        throw "Installer $architectureSuffix must be named '$assetName'; current name is '$actualName'."
+    }
+
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $hash = ([BitConverter]::ToString($sha256.ComputeHash([System.IO.File]::ReadAllBytes($resolvedInstallerPath)))).Replace("-", "")
+    }
+    finally {
+        $sha256.Dispose()
+    }
+
+    $size = (Get-Item $resolvedInstallerPath).Length
+    $shaPath = "$resolvedInstallerPath.sha256"
+    "$hash  $assetName" | Set-Content -Path $shaPath -Encoding ASCII
+    $installerRecords += [PSCustomObject]@{
+        Platform = $targetPlatform
+        Suffix = $architectureSuffix
+        AssetName = $assetName
+        Path = $resolvedInstallerPath
+        ShaPath = $shaPath
+        Sha256 = $hash
+        Size = $size
     }
 }
 
-if ([string]::IsNullOrWhiteSpace($InstallerPath)) {
-    $InstallerPath = Join-Path $outputRoot $assetName
-}
-elseif (-not [System.IO.Path]::IsPathRooted($InstallerPath)) {
-    $InstallerPath = Join-Path $repoRoot $InstallerPath
+if ($BuildOfflinePrerequisites) {
+    if ($requestedPlatforms -notcontains "x64") {
+        throw "Offline prerequisites currently support x64 only; include Platform x64."
+    }
+
+    $preparePrerequisitesScript = Join-Path $repoRoot "scripts\prepare-offline-prerequisites.ps1"
+    Invoke-NativeChecked -FilePath "powershell.exe" -ArgumentList @(
+        "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", $preparePrerequisitesScript,
+        "-Platform", "x64")
+    $offlineInstallerScript = Join-Path $installerRoot "DeskBox.Prerequisites.iss"
+    Invoke-NativeChecked -FilePath $iscc -ArgumentList @($offlineInstallerScript)
+    $AdditionalAssetPath += (Join-Path $outputRoot "DeskBox_Prerequisites_${ForkVersion}_x64.exe")
 }
 
-$InstallerPath = [System.IO.Path]::GetFullPath($InstallerPath)
-if (-not (Test-Path $InstallerPath -PathType Leaf)) {
-    throw "Không tìm thấy installer: $InstallerPath"
+$releaseAssetPaths = @()
+foreach ($installerRecord in $installerRecords) {
+    $releaseAssetPaths += @($installerRecord.Path, $installerRecord.ShaPath)
 }
-
-$actualName = [System.IO.Path]::GetFileName($InstallerPath)
-if ($actualName -ne $assetName) {
-    Write-Warning "Tên installer hiện tại là '$actualName'; manifest sẽ dùng tên asset '$assetName'. Hãy đổi tên hoặc truyền -InstallerPath đúng bản fork."
-    $assetName = $actualName
-}
-
-$sha256 = [System.Security.Cryptography.SHA256]::Create()
-try {
-    # Get-FileHash is absent on a few stripped-down PowerShell hosts. Use the
-    # BCL directly so the same release script works on those machines too.
-    $hash = ([BitConverter]::ToString($sha256.ComputeHash([System.IO.File]::ReadAllBytes($InstallerPath)))).Replace("-", "")
-}
-finally {
-    $sha256.Dispose()
-}
-$size = (Get-Item $InstallerPath).Length
-$shaPath = "$InstallerPath.sha256"
-"$hash  $assetName" | Set-Content -Path $shaPath -Encoding ASCII
-
-$releaseAssetPaths = @($InstallerPath, $shaPath)
 foreach ($additionalPath in $AdditionalAssetPath) {
     $resolvedAdditionalPath = if ([System.IO.Path]::IsPathRooted($additionalPath)) {
         [System.IO.Path]::GetFullPath($additionalPath)
@@ -306,17 +333,31 @@ foreach ($additionalPath in $AdditionalAssetPath) {
 $viSummary = [System.Net.WebUtility]::HtmlDecode(
     "DeskBox $displayVersion &#x0111;&#x00E3; s&#x1EB5;n s&#x00E0;ng c&#x1EAD;p nh&#x1EAD;t.")
 $viReleaseNotes = [System.Net.WebUtility]::HtmlDecode(
-    "C&#x1EA3;i thi&#x1EC7;n c&#x00E0;i &#x0111;&#x1EB7;t Windows 10/11: ki&#x1EC3;m tra r&#x00F5; Windows x64, b&#x1ED5; sung Visual C++ Runtime, log c&#x00E0;i &#x0111;&#x1EB7;t v&#x00E0; g&#x00F3;i prerequisite offline t&#x00E1;ch ri&#x00EA;ng.")
+    "S&#x1EED;a lu&#x1ED3;ng ch&#x1EE5;p Desktop/to&#x00E0;n m&#x00E0;n h&#x00EC;nh v&#x00E0; ph&#x00E1;t h&#x00E0;nh installer theo ki&#x1EBF;n tr&#x00FA;c x86, x64, ARM64.")
 
 if (-not [string]::IsNullOrWhiteSpace($VietnameseReleaseNotes)) {
     $viReleaseNotes = $VietnameseReleaseNotes.Trim()
 }
 
 if ([string]::IsNullOrWhiteSpace($EnglishReleaseNotes)) {
-    $EnglishReleaseNotes = "Improves Windows 10/11 setup with x64 preflight, Visual C++ runtime installation, setup logs, and a separate offline prerequisites package."
+    $EnglishReleaseNotes = "Fixes frozen desktop capture before its overlay is shown and publishes architecture-aware x86, x64, and ARM64 installers."
 }
 
-$downloadUrl = "https://github.com/$Repository/releases/download/$tag/$([Uri]::EscapeDataString($assetName))"
+$primaryInstaller = $installerRecords | Where-Object { $_.Suffix -eq "x64" } | Select-Object -First 1
+if ($null -eq $primaryInstaller) {
+    $primaryInstaller = $installerRecords | Select-Object -First 1
+}
+$arm64Installer = $installerRecords | Where-Object { $_.Suffix -eq "arm64" } | Select-Object -First 1
+$installerManifest = [ordered]@{}
+foreach ($installerRecord in $installerRecords) {
+    $installerManifest[$installerRecord.Suffix] = [ordered]@{
+        downloadUrl = "https://github.com/$Repository/releases/download/$tag/$([Uri]::EscapeDataString($installerRecord.AssetName))"
+        sha256 = $installerRecord.Sha256
+        size = $installerRecord.Size
+    }
+}
+
+$downloadUrl = "https://github.com/$Repository/releases/download/$tag/$([Uri]::EscapeDataString($primaryInstaller.AssetName))"
 $manifest = [ordered]@{
     schemaVersion = 1
     updaterProtocolVersion = $protocolVersion
@@ -332,10 +373,12 @@ $manifest = [ordered]@{
     minimumSupportedVersion = "1.4.2.1"
     mandatory = $false
     downloadUrl = $downloadUrl
+    installers = $installerManifest
     manualDownloadUrl = "https://github.com/$Repository/releases/latest"
     mirrorUrl = "https://github.com/$Repository/releases/latest"
-    sha256 = $hash
-    size = $size
+    sha256 = $primaryInstaller.Sha256
+    size = $primaryInstaller.Size
+    minimumWindowsBuild = 19044
     releaseNotesUrl = "https://github.com/$Repository/releases/tag/$tag"
     summary = [ordered]@{
         "vi-VN" = $viSummary
@@ -345,6 +388,12 @@ $manifest = [ordered]@{
         "vi-VN" = $viReleaseNotes
         "en-US" = $EnglishReleaseNotes.Trim()
     }
+}
+
+if ($null -ne $arm64Installer) {
+    $manifest.arm64DownloadUrl = "https://github.com/$Repository/releases/download/$tag/$([Uri]::EscapeDataString($arm64Installer.AssetName))"
+    $manifest.arm64Sha256 = $arm64Installer.Sha256
+    $manifest.arm64Size = $arm64Installer.Size
 }
 
 $artifactManifestRoot = Join-Path $repoRoot "artifacts\release\$displayVersion"
@@ -391,9 +440,10 @@ Write-Host "Đã tạo metadata cập nhật:" -ForegroundColor Green
 Write-Host "  Version:       $displayVersion"
 Write-Host "  Protocol:      $protocolVersion"
 Write-Host "  Release tag:   $tag"
-Write-Host "  Installer:     $InstallerPath"
-Write-Host "  SHA256:        $hash"
-Write-Host "  SHA file:      $shaPath"
+foreach ($installerRecord in $installerRecords) {
+    Write-Host "  Installer $($installerRecord.Suffix): $($installerRecord.Path)"
+    Write-Host "  SHA256 $($installerRecord.Suffix):    $($installerRecord.Sha256)"
+}
 Write-Host "  Manifest:      $manifestPath"
 if ($PublishGitHubRelease) {
     Write-Host "  GitHub Release: đã upload $tag"

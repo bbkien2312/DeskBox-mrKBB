@@ -238,14 +238,37 @@ public partial class App
             _trayMapFolderItem.IsEnabled = canCreateWidget;
         }
 
-        contextMenu.MenuFlyoutPresenterStyle = CreateTrayMenuPresenterStyle();
+        if (CreateTrayMenuPresenterStyle() is { } presenterStyle)
+        {
+            contextMenu.MenuFlyoutPresenterStyle = presenterStyle;
+        }
     }
 
-    private Style CreateTrayMenuPresenterStyle()
+    private Style? CreateTrayMenuPresenterStyle()
     {
+        Style? baseStyle = null;
+        try
+        {
+            baseStyle = Resources[typeof(MenuFlyoutPresenter)] as Style;
+        }
+        catch (Exception ex)
+        {
+            // Direct/unpackaged Debug launches may start before the WinUI
+            // presenter resource is materialized. The native default style is
+            // preferable to aborting the whole application at startup.
+            Log($"[Tray] MenuFlyoutPresenter resource unavailable; using default tray menu style. {ex.Message}");
+            return null;
+        }
+
+        if (baseStyle is null)
+        {
+            Log("[Tray] MenuFlyoutPresenter resource unavailable; using default tray menu style.");
+            return null;
+        }
+
         var style = new Style(typeof(MenuFlyoutPresenter))
         {
-            BasedOn = (Style)Resources[typeof(MenuFlyoutPresenter)]
+            BasedOn = baseStyle
         };
         style.Setters.Add(new Setter(ScrollViewer.VerticalScrollModeProperty, ScrollMode.Disabled));
         style.Setters.Add(new Setter(
@@ -264,8 +287,13 @@ public partial class App
             return;
         }
 
-        Style presenterStyle = contextMenu.MenuFlyoutPresenterStyle ??
+        Style? presenterStyle = contextMenu.MenuFlyoutPresenterStyle ??
             CreateTrayMenuPresenterStyle();
+        if (presenterStyle is null)
+        {
+            return;
+        }
+
         contextMenu.MenuFlyoutPresenterStyle = presenterStyle;
 
         MenuFlyout? secondWindowFlyout = TryGetSecondWindowContextMenuFlyout(_trayIcon);

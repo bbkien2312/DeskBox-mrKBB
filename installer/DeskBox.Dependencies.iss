@@ -1,14 +1,38 @@
+#ifndef DeskBoxDependencyArchitecture
+#define DeskBoxDependencyArchitecture "x64"
+#endif
+#ifndef DeskBoxDependencyPackageArchitecture
+#define DeskBoxDependencyPackageArchitecture "X64"
+#endif
+#ifndef DeskBoxDependencyVcRegistryRoot
+#define DeskBoxDependencyVcRegistryRoot HKLM64
+#endif
+#ifndef DeskBoxDependencyRequires64Bit
+#define DeskBoxDependencyRequires64Bit 1
+#endif
+#ifndef DeskBoxDependencyDotNetRuntimeUrl
+#define DeskBoxDependencyDotNetRuntimeUrl "https://aka.ms/dotnet/10.0/dotnet-runtime-win-x64.exe"
+#define DeskBoxDependencyDotNetRuntimeFallbackUrl "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.11/dotnet-runtime-10.0.11-win-x64.exe"
+#define DeskBoxDependencyDotNetRuntimeInstallerName "dotnet-runtime-10-win-x64.exe"
+#define DeskBoxDependencyWindowsAppRuntimeUrl "https://download.microsoft.com/download/5e0f2e92-f3ef-4023-97f0-bd57018a478c/WindowsAppRuntimeInstall-x64.exe"
+#define DeskBoxDependencyWindowsAppRuntimeFallbackUrl "https://aka.ms/windowsappsdk/2.2/2.2.0/windowsappruntimeinstall-x64.exe"
+#define DeskBoxDependencyWindowsAppRuntimeInstallerName "WindowsAppRuntimeInstall-x64.exe"
+#define DeskBoxDependencyVcRedistUrl "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+#define DeskBoxDependencyVcRedistFallbackUrl "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+#define DeskBoxDependencyVcRedistInstallerName "vc_redist.x64.exe"
+#endif
+
 [Code]
 const
-  DotNetRuntimeUrl = 'https://aka.ms/dotnet/10.0/dotnet-runtime-win-x64.exe';
-  DotNetRuntimeFallbackUrl = 'https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.11/dotnet-runtime-10.0.11-win-x64.exe';
-  DotNetRuntimeInstallerName = 'dotnet-runtime-10-win-x64.exe';
-  WindowsAppRuntimeUrl = 'https://download.microsoft.com/download/5e0f2e92-f3ef-4023-97f0-bd57018a478c/WindowsAppRuntimeInstall-x64.exe';
-  WindowsAppRuntimeFallbackUrl = 'https://aka.ms/windowsappsdk/2.2/2.2.0/windowsappruntimeinstall-x64.exe';
-  WindowsAppRuntimeInstallerName = 'WindowsAppRuntimeInstall-x64.exe';
-  VcRedistUrl = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
-  VcRedistFallbackUrl = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
-  VcRedistInstallerName = 'vc_redist.x64.exe';
+  DotNetRuntimeUrl = '{#DeskBoxDependencyDotNetRuntimeUrl}';
+  DotNetRuntimeFallbackUrl = '{#DeskBoxDependencyDotNetRuntimeFallbackUrl}';
+  DotNetRuntimeInstallerName = '{#DeskBoxDependencyDotNetRuntimeInstallerName}';
+  WindowsAppRuntimeUrl = '{#DeskBoxDependencyWindowsAppRuntimeUrl}';
+  WindowsAppRuntimeFallbackUrl = '{#DeskBoxDependencyWindowsAppRuntimeFallbackUrl}';
+  WindowsAppRuntimeInstallerName = '{#DeskBoxDependencyWindowsAppRuntimeInstallerName}';
+  VcRedistUrl = '{#DeskBoxDependencyVcRedistUrl}';
+  VcRedistFallbackUrl = '{#DeskBoxDependencyVcRedistFallbackUrl}';
+  VcRedistInstallerName = '{#DeskBoxDependencyVcRedistInstallerName}';
   MinimumDeskBoxWindowsBuild = 19044;
 
 var
@@ -109,6 +133,7 @@ begin
   // fallback for older Inno Setup installations and custom layouts.
   Result :=
     IsDotNet10RuntimeInstalledAt(ExpandConstant('{autopf}')) or
+    IsDotNet10RuntimeInstalledAt(ExpandConstant('{pf32}')) or
     IsDotNet10RuntimeInstalledAt(ExpandConstant('{pf}'));
 end;
 
@@ -119,7 +144,7 @@ begin
   Result :=
     Exec(
       ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
-      '-NoProfile -ExecutionPolicy Bypass -Command "$pkg = Get-AppxPackage -Name Microsoft.WindowsAppRuntime.2 -ErrorAction SilentlyContinue | Where-Object { $_.Architecture -eq ''X64'' -and [version]$_.Version -ge [version]''2.2.0.0'' } | Select-Object -First 1; if (-not $pkg) { $pkg = Get-AppxPackage -AllUsers -Name Microsoft.WindowsAppRuntime.2 -ErrorAction SilentlyContinue | Where-Object { $_.Architecture -eq ''X64'' -and [version]$_.Version -ge [version]''2.2.0.0'' } | Select-Object -First 1 }; if ($pkg) { exit 0 } exit 1"',
+      '-NoProfile -ExecutionPolicy Bypass -Command "$pkg = Get-AppxPackage -Name Microsoft.WindowsAppRuntime.2 -ErrorAction SilentlyContinue | Where-Object { $_.Architecture -eq ''{#DeskBoxDependencyPackageArchitecture}'' -and [version]$_.Version -ge [version]''2.2.0.0'' } | Select-Object -First 1; if (-not $pkg) { $pkg = Get-AppxPackage -AllUsers -Name Microsoft.WindowsAppRuntime.2 -ErrorAction SilentlyContinue | Where-Object { $_.Architecture -eq ''{#DeskBoxDependencyPackageArchitecture}'' -and [version]$_.Version -ge [version]''2.2.0.0'' } | Select-Object -First 1 }; if ($pkg) { exit 0 } exit 1"',
       '',
       SW_HIDE,
       ewWaitUntilTerminated,
@@ -133,14 +158,14 @@ var
 begin
   Result :=
     RegQueryDWordValue(
-      HKLM64,
-      'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64',
+      {#DeskBoxDependencyVcRegistryRoot},
+      'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\{#DeskBoxDependencyArchitecture}',
       'Installed',
       Installed) and
     (Installed = 1);
 
   if not Result then
-    Log('DeskBox dependency check: Visual C++ 2015-2022 x64 runtime is missing.');
+    Log('DeskBox dependency check: Visual C++ 2015-2022 {#DeskBoxDependencyArchitecture} runtime is missing.');
 end;
 
 procedure DetectDeskBoxDependencies;
@@ -235,7 +260,7 @@ begin
     begin
       DependencyDownloadPage.Msg1Label.Caption := ExpandConstant('{cm:DownloadingDotNet}');
       if not DownloadDependencyWithProgress(
-        '.NET 10 Runtime x64',
+        '.NET 10 Runtime {#DeskBoxDependencyArchitecture}',
         DotNetRuntimeUrl,
         DotNetRuntimeFallbackUrl,
         DotNetRuntimeInstallerName,
@@ -251,7 +276,7 @@ begin
     begin
       DependencyDownloadPage.Msg1Label.Caption := ExpandConstant('{cm:DownloadingWinAppRuntime}');
       if not DownloadDependencyWithProgress(
-        'Windows App Runtime 2.2 x64',
+        'Windows App Runtime 2.2 {#DeskBoxDependencyArchitecture}',
         WindowsAppRuntimeUrl,
         WindowsAppRuntimeFallbackUrl,
         WindowsAppRuntimeInstallerName,
@@ -265,9 +290,9 @@ begin
 
     if ShouldInstallVcRedist then
     begin
-      DependencyDownloadPage.Msg1Label.Caption := 'Downloading Visual C++ 2015-2022 Redistributable x64...';
+      DependencyDownloadPage.Msg1Label.Caption := 'Downloading Visual C++ 2015-2022 Redistributable {#DeskBoxDependencyArchitecture}...';
       if not DownloadDependencyWithProgress(
-        'Visual C++ 2015-2022 Redistributable x64',
+        'Visual C++ 2015-2022 Redistributable {#DeskBoxDependencyArchitecture}',
         VcRedistUrl,
         VcRedistFallbackUrl,
         VcRedistInstallerName,
@@ -357,7 +382,7 @@ begin
     begin
       Step := Step + 1;
       if not InstallDownloadedDependency(
-        'Visual C++ 2015-2022 Redistributable x64',
+        'Visual C++ 2015-2022 Redistributable {#DeskBoxDependencyArchitecture}',
         VcRedistInstallerName,
         '/install /quiet /norestart',
         Step,
@@ -373,7 +398,7 @@ begin
     begin
       Step := Step + 1;
       if not InstallDownloadedDependency(
-        '.NET 10 Runtime x64',
+        '.NET 10 Runtime {#DeskBoxDependencyArchitecture}',
         DotNetRuntimeInstallerName,
         '/install /quiet /norestart',
         Step,
@@ -389,7 +414,7 @@ begin
     begin
       Step := Step + 1;
       if not InstallDownloadedDependency(
-        'Windows App Runtime 2.2 x64',
+        'Windows App Runtime 2.2 {#DeskBoxDependencyArchitecture}',
         WindowsAppRuntimeInstallerName,
         '--quiet',
         Step,
@@ -410,6 +435,7 @@ var
   Version: TWindowsVersion;
 begin
   Result := '';
+#if DeskBoxDependencyRequires64Bit
   if not IsWin64 then
   begin
     Result :=
@@ -417,6 +443,7 @@ begin
       'DeskBox chỉ hỗ trợ Windows 64-bit.';
     Exit;
   end;
+#endif
 
   GetWindowsVersionEx(Version);
 
@@ -424,7 +451,7 @@ begin
      ((Version.Major = 10) and (Version.Build < MinimumDeskBoxWindowsBuild)) then
   begin
     Result :=
-      'DeskBox requires Windows 10 21H2 (build 19044) or newer, 64-bit.' + #13#10 +
+      'DeskBox requires Windows 10 21H2 (build 19044) or newer, {#DeskBoxDependencyArchitecture}.' + #13#10 +
       'Windows hiện tại: ' + IntToStr(Version.Major) + '.' +
       IntToStr(Version.Minor) + ' (build ' + IntToStr(Version.Build) + ').' + #13#10 +
       'Hãy cập nhật Windows rồi chạy lại bộ cài.';

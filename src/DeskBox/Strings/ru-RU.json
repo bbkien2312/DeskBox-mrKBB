@@ -992,6 +992,7 @@
   "Settings.Update.Detail.Timeout": "Время проверки обновлений истекло. Повторите попытку позже или скачайте с официального сайта.",
   "Settings.Update.Detail.NetworkUnavailable": "DeskBox не удалось подключиться к серверу обновлений. Проверьте сеть или скачайте с официального сайта.",
   "Settings.Update.Detail.InvalidManifest": "Метаданные обновления недоступны. Скачать можно с официального сайта.",
+  "Settings.Update.Detail.UnsupportedWindows": "Для этого обновления требуется Windows 10 сборки {0} или новее.",
   "Settings.Update.Detail.HashMissing": "Пакет обновления не имеет проверочных данных. Скачать с официального сайта.",
   "Settings.Update.Detail.HashMismatch": "Пакет обновления не прошел проверку. Загрузите еще раз или получите его с официального сайта.",
   "Settings.Update.Detail.DownloadMissing": "Установщик отсутствует. Загрузите обновление еще раз.",

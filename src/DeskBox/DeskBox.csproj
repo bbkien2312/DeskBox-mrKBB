@@ -10,8 +10,8 @@
          upstream version in assembly metadata for diagnostics and updates. -->
     <DeskBoxUpstreamVersion Condition="'$(DeskBoxUpstreamVersion)' == ''">1.4.2</DeskBoxUpstreamVersion>
     <DeskBoxForkVersion Condition="'$(DeskBoxForkVersion)' == ''">1.4.2.1</DeskBoxForkVersion>
-    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2.1-fork.9</DeskBoxForkDisplayVersion>
-    <DeskBoxForkBuildNumber Condition="'$(DeskBoxForkBuildNumber)' == ''">9</DeskBoxForkBuildNumber>
+    <DeskBoxForkDisplayVersion Condition="'$(DeskBoxForkDisplayVersion)' == ''">1.4.2.1-fork.10</DeskBoxForkDisplayVersion>
+    <DeskBoxForkBuildNumber Condition="'$(DeskBoxForkBuildNumber)' == ''">10</DeskBoxForkBuildNumber>
     <!-- Keep the update wire contract stable across fork builds. Increase
          this only when a future updater can no longer read old manifests. -->
     <DeskBoxUpdaterProtocolVersion Condition="'$(DeskBoxUpdaterProtocolVersion)' == ''">1</DeskBoxUpdaterProtocolVersion>
@@ -23,8 +23,8 @@
     <FileVersion Condition="'$(DeskBoxForkAssemblyVersion)' == ''">$(DeskBoxForkVersion)</FileVersion>
     <InformationalVersion>$(DeskBoxForkDisplayVersion)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <Platforms>x64;ARM64</Platforms>
-    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <Platforms>x86;x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
     <PublishSingleFile>false</PublishSingleFile>
@@ -145,7 +145,7 @@
   <Target Name="BuildDeskBoxUpdater" BeforeTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' and '$(DeskBoxDistribution)' != 'Store'">
     <MSBuild
       Projects="..\DeskBox.Updater\DeskBox.Updater.csproj"
-      Targets="Build"
+      Targets="Restore;Build"
       Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier)" />
   </Target>
 
@@ -161,7 +161,7 @@
   <Target Name="PublishDeskBoxUpdater" AfterTargets="Publish" Condition="'$(DesignTimeBuild)' != 'true' and '$(DeskBoxDistribution)' != 'Store'">
     <MSBuild
       Projects="..\DeskBox.Updater\DeskBox.Updater.csproj"
-      Targets="Publish"
+      Targets="Restore;Publish"
       Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=$(SelfContained);PublishSingleFile=false;PublishDir=$(PublishDir)" />
   </Target>
 

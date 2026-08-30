@@ -992,6 +992,7 @@
   "Settings.Update.Detail.Timeout": "আপডেট চেক টাইম আউট. পরে আবার চেষ্টা করুন বা অফিসিয়াল ওয়েবসাইট থেকে ডাউনলোড করুন।",
   "Settings.Update.Detail.NetworkUnavailable": "ডেস্কবক্স আপডেট সার্ভারের সাথে সংযোগ করতে পারেনি৷ নেটওয়ার্ক চেক করুন বা অফিসিয়াল ওয়েবসাইট থেকে ডাউনলোড করুন।",
   "Settings.Update.Detail.InvalidManifest": "আপডেট মেটাডেটা অনুপলব্ধ. আপনি অফিসিয়াল ওয়েবসাইট থেকে ডাউনলোড করতে পারেন।",
+  "Settings.Update.Detail.UnsupportedWindows": "এই আপডেটের জন্য Windows 10 বিল্ড {0} বা পরবর্তী সংস্করণ প্রয়োজন।",
   "Settings.Update.Detail.HashMissing": "আপডেট প্যাকেজের কোনো যাচাইকরণ ডেটা নেই। অফিসিয়াল ওয়েবসাইট থেকে ডাউনলোড করুন।",
   "Settings.Update.Detail.HashMismatch": "আপডেট প্যাকেজ যাচাই ব্যর্থ হয়েছে. আবার ডাউনলোড করুন বা অফিসিয়াল ওয়েবসাইট থেকে এটি পান।",
   "Settings.Update.Detail.DownloadMissing": "ইনস্টলার অনুপস্থিত. আপডেটটি আবার ডাউনলোড করুন।",

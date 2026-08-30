@@ -32,8 +32,14 @@
                     VerticalAlignment="Center"
                     MaxWidth="360"
                     Foreground="White"
-                    Text="Bấm chọn cửa sổ, hoặc kéo chuột để cắt vùng tự do"
+                    Text="Bấm cửa sổ, kéo vùng, hoặc chọn Desktop/Toàn màn hình"
                     TextTrimming="CharacterEllipsis" />
+                <Button
+                    Click="DesktopTargetButton_Click"
+                    Content="Desktop (D)" />
+                <Button
+                    Click="FullscreenTargetButton_Click"
+                    Content="Toàn màn hình (F)" />
                 <Button
                     x:Name="CopyButton"
                     Click="CopyButton_Click"

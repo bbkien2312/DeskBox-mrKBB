@@ -992,6 +992,7 @@
   "Settings.Update.Detail.Timeout": "अद्यतन जांच का समय समाप्त हो गया. बाद में पुनः प्रयास करें या आधिकारिक वेबसाइट से डाउनलोड करें।",
   "Settings.Update.Detail.NetworkUnavailable": "डेस्कबॉक्स अद्यतन सर्वर से कनेक्ट नहीं हो सका। नेटवर्क जांचें या आधिकारिक वेबसाइट से डाउनलोड करें।",
   "Settings.Update.Detail.InvalidManifest": "अद्यतन मेटाडेटा अनुपलब्ध है. आप आधिकारिक वेबसाइट से डाउनलोड कर सकते हैं।",
+  "Settings.Update.Detail.UnsupportedWindows": "इस अपडेट के लिए Windows 10 बिल्ड {0} या नया आवश्यक है।",
   "Settings.Update.Detail.HashMissing": "अद्यतन पैकेज़ में कोई सत्यापन डेटा नहीं है. आधिकारिक वेबसाइट से डाउनलोड करें.",
   "Settings.Update.Detail.HashMismatch": "अद्यतन पैकेज सत्यापन विफल रहा. दोबारा डाउनलोड करें या आधिकारिक वेबसाइट से प्राप्त करें।",
   "Settings.Update.Detail.DownloadMissing": "इंस्टॉलर गायब है. अपडेट दोबारा डाउनलोड करें.",

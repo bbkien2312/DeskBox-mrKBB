@@ -989,6 +989,7 @@
     "Settings.Update.Detail.Timeout": "Die Update-Prüfung ist abgelaufen. Später erneut versuchen oder von der offiziellen Website herunterladen.",
     "Settings.Update.Detail.NetworkUnavailable": "DeskBox konnte keine Verbindung zum Update-Server herstellen. Netzwerk prüfen oder von der offiziellen Website herunterladen.",
     "Settings.Update.Detail.InvalidManifest": "Update-Metadaten nicht verfügbar. Von der offiziellen Website herunterladen.",
+    "Settings.Update.Detail.UnsupportedWindows": "Dieses Update erfordert Windows 10 Build {0} oder neuer.",
     "Settings.Update.Detail.HashMissing": "Das Update-Paket hat keine Verifizierungsdaten. Von der offiziellen Website herunterladen.",
     "Settings.Update.Detail.HashMismatch": "Das Update-Paket hat die Verifizierung nicht bestanden. Erneut herunterladen oder von der offiziellen Website beziehen.",
     "Settings.Update.Detail.DownloadMissing": "Installer fehlt. Update erneut herunterladen.",

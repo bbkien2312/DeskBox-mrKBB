@@ -15,8 +15,9 @@ namespace DeskBox.Services;
 /// </summary>
 internal static class ThumbnailDiskCache
 {
-    private const long MaxCacheBytes = 128L * 1024 * 1024;
-    private const int MaxCacheFiles = 2_000;
+    private static readonly bool s_isX86Process = RuntimeInformation.ProcessArchitecture == Architecture.X86;
+    private static long MaxCacheBytes => (s_isX86Process ? 48L : 128L) * 1024 * 1024;
+    private static int MaxCacheFiles => s_isX86Process ? 750 : 2_000;
     private static readonly ConcurrentDictionary<string, Task<byte[]?>> s_pending = new(StringComparer.OrdinalIgnoreCase);
     private static int s_cleanupRunning;
 
