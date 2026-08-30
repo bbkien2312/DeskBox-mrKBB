@@ -1,29 +1,50 @@
 {
-    "schemaVersion":  1,
-    "updaterProtocolVersion":  1,
-    "channel":  "stable",
-    "version":  "1.4.2.1",
-    "forkVersion":  "1.4.2.1",
-    "forkDisplayVersion":  "1.4.2.1-fork.9",
-    "forkBuildNumber":  9,
-    "upstreamVersion":  "1.4.2",
-    "forkCommit":  "ad4480c5ae2090aca9a3ef6a5235e01d2bb93555",
-    "buildNumber":  "1.4.2.1-fork.9",
-    "releaseDate":  "2026-08-29T02:46:31Z",
-    "minimumSupportedVersion":  "1.4.2.1",
-    "mandatory":  false,
-    "downloadUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.9/DeskBox_Setup_1.4.2.1_x64.exe",
-    "manualDownloadUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
-    "mirrorUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
-    "sha256":  "BF81928B4C959DFBE855DB399E362FECEEF8CA49729C5141CD4A08FBD7B9E461",
-    "size":  25702451,
-    "releaseNotesUrl":  "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.9",
-    "summary":  {
-                    "vi-VN":  "DeskBox 1.4.2.1-fork.9 đã sẵn sàng cập nhật.",
-                    "en-US":  "DeskBox 1.4.2.1-fork.9 is ready to update."
-                },
-    "releaseNotes":  {
-                         "vi-VN":  "Chụp một cửa sổ bằng nội dung riêng của cửa sổ đó, không còn bị cửa sổ khác che. Chụp vùng kéo, Desktop và toàn màn hình giữ nguyên. Có fallback và log để xử lý khác biệt driver hoặc ứng dụng.",
-                         "en-US":  "Captures a selected window independently so overlapping windows no longer appear in the image. Region, desktop, and full-screen capture keep their existing behavior, with fallback logging for compatibility."
-                     }
+  "schemaVersion": 1,
+  "updaterProtocolVersion": 1,
+  "channel": "stable",
+  "version": "1.4.2.1",
+  "forkVersion": "1.4.2.1",
+  "forkDisplayVersion": "1.4.2.1-fork.10",
+  "forkBuildNumber": 10,
+  "upstreamVersion": "1.4.2",
+  "forkCommit": "3a79e4e",
+  "buildNumber": "1.4.2.1-fork.10",
+  "releaseDate": "2026-08-30T03:27:41Z",
+  "minimumSupportedVersion": "1.4.2.1",
+  "mandatory": false,
+  "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.10/DeskBox_Setup_1.4.2.1_x64.exe",
+  "installers": {
+    "x64": {
+      "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.10/DeskBox_Setup_1.4.2.1_x64.exe",
+      "sha256": "B413813B656F324BB722768B02BC2EB8133FAB9AAF660BA686365B55A4AA9463",
+      "size": 25697302
+    },
+    "arm64": {
+      "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.10/DeskBox_Setup_1.4.2.1_arm64.exe",
+      "sha256": "1D0D2B82B25093F9D93333E1773792360951C686F8B78EAB95FAB549C9EDBC3F",
+      "size": 25684984
+    },
+    "x86": {
+      "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.10/DeskBox_Setup_1.4.2.1_x86.exe",
+      "sha256": "A4CA42564115AC3AEB5E631DFE63249E2A0F5941BC9F0922ECBA0AAF0A5C0824",
+      "size": 12316920
+    }
+  },
+  "manualDownloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
+  "mirrorUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
+  "sha256": "B413813B656F324BB722768B02BC2EB8133FAB9AAF660BA686365B55A4AA9463",
+  "size": 25697302,
+  "minimumWindowsBuild": 19044,
+  "releaseNotesUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.10",
+  "summary": {
+    "vi-VN": "DeskBox 1.4.2.1-fork.10 đã sẵn sàng cập nhật.",
+    "en-US": "DeskBox 1.4.2.1-fork.10 is ready to update."
+  },
+  "releaseNotes": {
+    "vi-VN": "Fork 10: sửa chụp Desktop không taskbar, giữ chụp cửa sổ không bị che, sửa snapshot Desktop/toàn màn hình và phát hành installer theo kiến trúc x86, x64, ARM64.",
+    "en-US": "Fork 10 fixes desktop-without-taskbar selection, preserves unobscured window capture, restores stable desktop/full-screen snapshots, and adds x86, x64, and ARM64 installers."
+  },
+  "arm64DownloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.10/DeskBox_Setup_1.4.2.1_arm64.exe",
+  "arm64Sha256": "1D0D2B82B25093F9D93333E1773792360951C686F8B78EAB95FAB549C9EDBC3F",
+  "arm64Size": 25684984
 }
