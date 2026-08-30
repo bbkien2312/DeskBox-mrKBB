@@ -101,3 +101,11 @@ Phần này tóm tắt các fix chính của fork ngày 19/08/2026 và phần ho
 - Đã ghép các lô bằng `artifacts/translation/merge-gemini-vi.ps1`, kiểm tra đủ key, không trùng/thiếu và placeholder khớp trước khi ghi locale.
 - Locale chính `src/DeskBox/Strings/vi-VN.json` hiện có 2.340 entry gồm 2.339 key chuẩn và `Language.Vietnamese`; bản trước được lưu tại `artifacts/translation/vi-VN.before-gemini.json`.
 - Build RID x64 đạt 0 lỗi; test x64 đạt **1790/1790 passed**. Chưa push/release theo đúng yêu cầu hiện tại.
+
+### Build và phát hành Fork 11 — 30/08/2026
+
+- Tăng đúng `DeskBoxForkBuildNumber` từ 10 lên 11, giữ `DeskBoxForkVersion=1.4.2.1`; không tăng version upstream.
+- Build Release/installer thành công cho x64, ARM64 và x86. SHA-256 lần lượt: x64 `3A1B7BDC2EBB879BCCD7EE28939C2929A1CA1A27866E3CCFC3BC0EC14297E75`, ARM64 `A73B1F924C361D3DC396E69CC4F1F57D666D5CBF78D78FB342216ACB2954E216`, x86 `48D0B566068A683C022B551ABBF26395A89F36DC72E60E74070F029B0EFE7DCA`.
+- Commit source `ad2ca60`, manifest `346a59f`. Push trực tiếp remote `fork=https://github.com/bbkien2312/DeskBox-mrKBB` thành công; không dùng proxy Codex.
+- GitHub Release `v1.4.2.1-fork.11` đã upload đủ 3 installer và 3 file SHA. Manifest online phải giữ `forkDisplayVersion=1.4.2.1-fork.11`, `forkCommit=ad2ca60` và URL asset cùng tag.
+- Lỗi thao tác cần nhớ: gọi script với mảng PowerShell trong cùng shell `-Platform @('x64','ARM64','x86')`; truyền chuỗi `x64,ARM64,x86` qua `powershell.exe -File` bị ValidateSet từ chối.
