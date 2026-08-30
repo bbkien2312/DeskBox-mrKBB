@@ -1,6 +1,5 @@
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Diagnostics;
 using System.Text;
 using DeskBox.Helpers;
 using DeskBox.Services;
@@ -18,10 +17,9 @@ using DrawingSize = System.Drawing.Size;
 namespace DeskBox.Views;
 
 /// <summary>
-/// Selector kiểu iTop: chụp một ảnh nền trước khi overlay xuất hiện, sau đó
-/// người dùng có thể thấy rõ, bấm chọn cả cửa sổ hoặc kéo vùng tự do để lưu/sao chép.
-/// Desktop không taskbar và toàn màn hình là hai mục tiêu tường minh, dùng lần lượt
-/// work area và monitor bounds để không nhầm với một cửa sổ đang phủ vùng nền.
+/// Selector kiểu iTop: chụp một ảnh nền trước khi overlay hiện ra, rồi chỉ làm
+/// ba việc độc lập: chọn cửa sổ, kéo vùng tự do, hoặc chọn Desktop/toàn màn hình
+/// bằng nút. Nhờ vậy lớp phủ hệ thống không thể đổi nhầm mục tiêu chụp.
 /// </summary>
 public sealed partial class ScreenshotCaptureWindow : Window
 {
@@ -153,8 +151,10 @@ public sealed partial class ScreenshotCaptureWindow : Window
         else
         {
             UpdateSelectionFromCursor();
-            LockSelection(
-                _selectedWindow == IntPtr.Zero ? "Toàn màn hình đã được chọn" : $"Đã chọn: {GetWindowTitle(_selectedWindow)}");
+            if (_selectedWindow != IntPtr.Zero)
+            {
+                LockSelection($"Đã chọn: {GetWindowTitle(_selectedWindow)}");
+            }
         }
 
         _dragStart = null;
@@ -257,11 +257,7 @@ public sealed partial class ScreenshotCaptureWindow : Window
         if (_selectedWindow == IntPtr.Zero)
         {
             SelectionBorder.Visibility = Visibility.Collapsed;
-            _isDesktopCapture = IsPointInside(cursor, _desktopRect);
-            _selectedRect = _isDesktopCapture ? _desktopRect : _monitorRect;
-            SelectionHintText.Text = _isDesktopCapture
-                ? "Desktop (không gồm taskbar; bấm để khóa vùng chụp)"
-                : "Toàn màn hình (gồm taskbar; bấm để khóa vùng chụp)";
+            SelectionHintText.Text = "Kéo để chọn vùng, chọn cửa sổ, hoặc bấm Desktop/Toàn màn hình";
             return;
         }
 
@@ -336,15 +332,7 @@ public sealed partial class ScreenshotCaptureWindow : Window
         SaveButton.IsEnabled = false;
         try
         {
-            Win32Helper.RECT captureRect = _isManualRegion || _isDesktopCapture || _selectedWindow != IntPtr.Zero
-                ? _selectedRect
-                : _monitorRect;
-            // Chỉ cửa sổ đã chọn dùng Windows Graphics Capture để lấy nội dung
-            // riêng, không còn là một mảnh cắt từ Desktop bị các cửa sổ khác che.
-            // Vùng kéo tự do và toàn màn hình vẫn xuất đúng ảnh nền đóng băng cũ.
-            string imagePath = _selectedWindow != IntPtr.Zero && !_isManualRegion
-                ? await SelectedWindowScreenshotService.CaptureAsync(_selectedWindow)
-                : await Task.Run(() => CropFrozenSnapshot(captureRect));
+            string imagePath = await CaptureCurrentSelectionAsync();
             if (copyToClipboard)
             {
                 StorageFile file = await StorageFile.GetFileFromPathAsync(imagePath);
@@ -386,6 +374,37 @@ public sealed partial class ScreenshotCaptureWindow : Window
     }
 
     private static string CaptureMonitorSnapshot(Win32Helper.RECT rect) => CaptureBitmapToPng(rect, "frozen");
+
+    private Task<string> CaptureCurrentSelectionAsync()
+    {
+        if (_isManualRegion)
+        {
+            return CaptureManualRegionAsync();
+        }
+
+        if (_selectedWindow != IntPtr.Zero)
+        {
+            return CaptureSelectedWindowAsync();
+        }
+
+        return _isDesktopCapture ? CaptureDesktopAsync() : CaptureFullScreenAsync();
+    }
+
+    // Đây là nhánh Fork 9: WGC lấy trực tiếp HWND nên ảnh cửa sổ không bị
+    // cửa sổ khác che. PrintWindow chỉ là fallback bên trong service này.
+    private Task<string> CaptureSelectedWindowAsync() =>
+        SelectedWindowScreenshotService.CaptureAsync(_selectedWindow);
+
+    // Ba nhánh dưới luôn crop từ ảnh GDI đóng băng trước khi selector hiện ra.
+    // Không dùng WGC, không gọi selector, nên Desktop/toàn màn hình ổn định.
+    private Task<string> CaptureManualRegionAsync() =>
+        Task.Run(() => CropFrozenSnapshot(_selectedRect));
+
+    private Task<string> CaptureDesktopAsync() =>
+        Task.Run(() => CropFrozenSnapshot(_desktopRect));
+
+    private Task<string> CaptureFullScreenAsync() =>
+        Task.Run(() => CropFrozenSnapshot(_monitorRect));
 
     private string GetCaptureMode() => _isManualRegion
         ? "region"
@@ -475,76 +494,12 @@ public sealed partial class ScreenshotCaptureWindow : Window
                 return true;
             }
 
-            // NVIDIA App có thể giữ các cửa sổ overlay top-level quanh vùng
-            // taskbar. Selector không được coi chúng là "cửa sổ cần chụp";
-            // Desktop/taskbar ở vị trí này phải tiếp tục là chế độ toàn màn hình.
-            if (IsNvidiaOverlayProcess(processId))
-            {
-                App.LogVerbose($"[Screenshot] Ignored NVIDIA overlay window class={className} pid={processId}");
-                return true;
-            }
-
-            // TextInputHost tạo một CoreWindow trong suốt phủ monitor để nhận
-            // input của Windows. Nó không phải cửa sổ ứng dụng mà người dùng
-            // muốn chụp; nếu không bỏ qua thì click taskbar/khoảng trống sẽ
-            // nhầm sang nhánh WGC và xuất ảnh đen.
-            if (IsSystemInputOverlayProcess(processId, className))
-            {
-                App.LogVerbose($"[Screenshot] Ignored system input overlay class={className} pid={processId}");
-                return true;
-            }
-
             result = window;
             selectedRect = candidate;
             return false;
         }, IntPtr.Zero);
         rect = selectedRect;
         return result;
-    }
-
-    private static bool IsPointInside(Win32Helper.POINT point, Win32Helper.RECT rect) =>
-        point.X >= rect.Left && point.X < rect.Right &&
-        point.Y >= rect.Top && point.Y < rect.Bottom;
-
-    private static bool IsNvidiaOverlayProcess(uint processId)
-    {
-        try
-        {
-            using Process process = Process.GetProcessById(checked((int)processId));
-            return process.ProcessName.Equals("NVIDIA Overlay", StringComparison.OrdinalIgnoreCase) ||
-                   process.ProcessName.Equals("NVIDIA Share", StringComparison.OrdinalIgnoreCase);
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-        catch (InvalidOperationException)
-        {
-            return false;
-        }
-    }
-
-    private static bool IsSystemInputOverlayProcess(uint processId, string className)
-    {
-        if (!className.Equals("Windows.UI.Core.CoreWindow", StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        try
-        {
-            using Process process = Process.GetProcessById(checked((int)processId));
-            return process.ProcessName.Equals("TextInputHost", StringComparison.OrdinalIgnoreCase) ||
-                   process.ProcessName.Equals("InputApp", StringComparison.OrdinalIgnoreCase);
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-        catch (InvalidOperationException)
-        {
-            return false;
-        }
     }
 
     private static bool TryGetCaptureBounds(IntPtr window, out Win32Helper.RECT bounds) =>

@@ -30,7 +30,7 @@ Fork duy trì tại <https://github.com/bbkien2312/DeskBox-mrKBB> bổ sung các
 - Sau khi vùng chụp đã khóa, nhấn `Ctrl+C` hoặc nút **Sao chép (Ctrl+C)** để đưa ảnh vào Clipboard Windows. Không có hotkey chụp toàn cục mới và không tạo thêm cache ảnh trong RAM.
 - Mọi bản fork phát hành phải tăng riêng `forkBuildNumber`, upload installer/checksum lên GitHub Release và cập nhật `release/stable.json`; không dùng số phiên bản upstream để quyết định update.
 
-Bản phát hành hiện hành là [1.4.2.1-fork.9](https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.9). Fork 10 sẽ phát hành ba installer online x86/x64/ARM64 sau khi test Windows 10 x86 hoàn tất; setup tự tải dependency đúng kiến trúc khi thiếu.
+Bản phát hành hiện hành là [1.4.2.1-fork.11](https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.11). Fork 12 đang kiểm thử riêng luồng chụp màn hình trước khi phát hành; setup tự tải dependency đúng kiến trúc khi thiếu.
 
 ## Mica and Acrylic on the desktop
 

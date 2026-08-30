@@ -8,6 +8,14 @@
 - Không thay đổi logic tổ chức Desktop, watcher, cache, screenshot hay updater. Không push/release trong lượt này.
 - Kiểm tra đã thực hiện: JSON parse thành công; `vi-VN` có đủ 2.339 key chuẩn; placeholder sai `0`; cần hoàn tất build/test x64 trước khi bàn giao.
 
+### Fork 12 — đơn giản hoá luồng chụp màn hình — 30/08/2026
+
+- Đã tạo tag an toàn `backup/fork11-before-screenshot-simplify` tại `64a813f` trước khi sửa. Không rollback cả source về Fork 9 vì Fork 11 còn locale, installer và updater mới.
+- Mốc đầu tiên xử lý cửa sổ bị che là Fork 9 (`ad4480c`): chỉ cửa sổ đã chọn gọi `SelectedWindowScreenshotService` (WGC, fallback `PrintWindow`). Không chuyển Desktop, toàn màn hình hoặc vùng kéo qua WGC.
+- Fork 12 giữ nguyên selector của Fork 9 cho cửa sổ, bỏ suy luận Desktop/toàn màn hình theo vị trí chuột và bỏ lọc process overlay khỏi selector. Người dùng chọn **Desktop (D)** hoặc **Toàn màn hình (F)** rõ ràng bằng nút/phím; vùng trống chỉ hiện hướng dẫn, không tự khoá nhầm mục tiêu.
+- `ScreenshotCaptureWindow` tách bốn nhánh xuất: `CaptureSelectedWindowAsync`, `CaptureManualRegionAsync`, `CaptureDesktopAsync`, `CaptureFullScreenAsync`. Ba nhánh sau chỉ crop từ frozen GDI snapshot, nên không phụ thuộc NVIDIA Overlay/TextInputHost.
+- Đã build Debug x64 0 lỗi và chạy test x64 **1790/1790 passed**. Không smoke-test GUI vì DeskBox bản cài của người dùng đang chạy (`C:\\Users\\Ryzen9\\AppData\\Local\\Programs\\DeskBox\\DeskBox.exe`); không tự tắt để tránh cơ chế trả file box về Desktop. Cần kiểm tra thủ công sau trên Debug/installer: cửa sổ bị che, cửa sổ WinUI, kéo vùng, Desktop không taskbar, toàn màn hình có taskbar và Ctrl+C.
+
 ## Handoff bắt buộc — fork `bbkien2312/DeskBox-mrKBB`
 
 Phần này tóm tắt các fix chính của fork ngày 19/08/2026 và phần hoàn thiện Fork 4 ngày 20/08/2026. Commit ngày 18/08 chỉ là baseline source ban đầu. Khi sửa lỗi mới, giữ nguyên các hành vi dưới đây trừ khi người dùng duyệt thay đổi khác.
