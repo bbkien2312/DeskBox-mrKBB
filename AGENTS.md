@@ -7,7 +7,7 @@ Phần này tóm tắt các fix chính của fork ngày 19/08/2026 và phần ho
 ### Nguồn, phiên bản và phát hành
 
 - Cây `main` của fork là nguồn sự thật. `deskbox_original` chỉ là baseline để đối chiếu; không dùng lại source cũ để ghi đè cây này.
-- Bản phát hành online gần nhất: `1.4.2.1-fork.9` (tag `v1.4.2.1-fork.9`, source `ad4480c`, manifest `be8ed31`). Fork 10 hiện chỉ là thay đổi/build local; chỉ nâng `DeskBoxForkBuildNumber`, không đổi upstream version `1.4.2.1`.
+- Bản phát hành online gần nhất: `1.4.2.1-fork.10` (tag `v1.4.2.1-fork.10`, source `3a79e4e`, manifest `1f90207`). Chỉ tăng `DeskBoxForkBuildNumber`, không đổi upstream version `1.4.2.1`.
 - Installer Fork 4 đã build tại `Output\DeskBox_Setup_1.4.2.1_x64.exe` và đã publish ở GitHub Release tag `v1.4.2.1-fork.4`. `release/stable.json` online đã trỏ Fork 4, asset, dung lượng và SHA-256 đã được đối chiếu. Fork 3 phải so sánh `forkBuildNumber=3` với manifest `4` để hiện update.
 - Luồng updater nằm ở `scripts\publish-fork-update.ps1`, `Services\AppUpdateService.cs`, `Services\AppBuildMetadata.cs` và `Models\AppUpdateManifest.cs`. Giữ protocol version riêng của fork, `forkBuildNumber` tách khỏi version upstream và tên tag `v1.4.2.1-fork.N`.
 - Script phát hành phải tạo SHA-256/manifest UTF-8 không BOM. Không giả định PowerShell có `Get-FileHash`; script đã có fallback BCL.
@@ -61,6 +61,7 @@ Phần này tóm tắt các fix chính của fork ngày 19/08/2026 và phần ho
 - Manifest mới thêm `installers.{x86,x64,arm64}` (URL/SHA/size từng kiến trúc), vẫn ghi các trường primary x64 và ARM64 cũ nên Fork trước không mất update. Updater chọn theo `RuntimeInformation.ProcessArchitecture`; đồng thời từ chối update với thông báo rõ nếu Windows thấp hơn `minimumWindowsBuild`.
 - Chính sách x86 giảm cache icon/bitmap/thumbnail và số tác vụ nạp song song; disk thumbnail cache x86 giới hạn 48 MB/750 file. Đây là giới hạn an toàn cho virtual address space 32-bit, không tắt thumbnail.
 - Đã test x64: **1790/1790 passed**. Publish/installer x86/x64/ARM64 đã biên dịch local và manifest thử có đủ ba asset. Testhost x86 không chạy tại máy dev vì thiếu .NET 10 Runtime x86 (máy chỉ có .NET 8 x86); đây là thiếu dependency môi trường, không phải lỗi build. Trước khi phát hành, phải chạy installer trên Windows 10 x86/VM thật và test update từ một Fork x86 cũ sau khi có bản đó.
+- **Phát hành Fork 10 (30/08/2026):** source `3a79e4e`, manifest `1f90207`, tag [v1.4.2.1-fork.10](https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.10). GitHub Release và Contents API đã được đọc ngược sau upload: `release/stable.json` ghi `forkBuildNumber=10`, `forkCommit=3a79e4e`, có bảng installers `x64`, `arm64`, `x86`, mỗi URL/dung lượng/SHA khớp asset thật. Installer online: x64 25.697.302 bytes SHA-256 `B413813B656F324BB722768B02BC2EB8133FAB9AAF660BA686365B55A4AA9463`; ARM64 25.684.984 bytes SHA-256 `1D0D2B82B25093F9D93333E1773792360951C686F8B78EAB95FAB549C9EDBC3F`; x86 12.316.920 bytes SHA-256 `A4CA42564115AC3AEB5E631DFE63249E2A0F5941BC9F0922ECBA0AAF0A5C0824`. Updater phải chọn asset theo kiến trúc và chỉ hỗ trợ Windows build 19044+.
 
 ### Kiểm thử và môi trường
 
