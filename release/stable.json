@@ -4,47 +4,47 @@
   "channel": "stable",
   "version": "1.4.2.1",
   "forkVersion": "1.4.2.1",
-  "forkDisplayVersion": "1.4.2.1-fork.11",
-  "forkBuildNumber": 11,
+  "forkDisplayVersion": "1.4.2.1-fork.12",
+  "forkBuildNumber": 12,
   "upstreamVersion": "1.4.2",
-  "forkCommit": "ad2ca60",
-  "buildNumber": "1.4.2.1-fork.11",
-  "releaseDate": "2026-08-30T07:00:51Z",
+  "forkCommit": "a73c2174a918a71b5684f3b135a4e3094d5d392e",
+  "buildNumber": "1.4.2.1-fork.12",
+  "releaseDate": "2026-08-30T07:54:59Z",
   "minimumSupportedVersion": "1.4.2.1",
   "mandatory": false,
-  "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.11/DeskBox_Setup_1.4.2.1_x64.exe",
+  "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.12/DeskBox_Setup_1.4.2.1_x64.exe",
   "installers": {
     "x64": {
-      "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.11/DeskBox_Setup_1.4.2.1_x64.exe",
-      "sha256": "3A1B7BDC2EBB879BCCD7EE28939C2929A1CA1A27866E3CC8FC3BC0EC14297E75",
-      "size": 25724349
+      "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.12/DeskBox_Setup_1.4.2.1_x64.exe",
+      "sha256": "661EFF48155C0CA9B8F4F272DD8981A6BF4BE8A899008A83139661123E64BC4E",
+      "size": 25722252
     },
     "arm64": {
-      "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.11/DeskBox_Setup_1.4.2.1_arm64.exe",
-      "sha256": "A73B1F924C361D3DC396E69CC4F1F57D666D5CBF78D78FB342216ACB2954E216",
-      "size": 25681033
+      "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.12/DeskBox_Setup_1.4.2.1_arm64.exe",
+      "sha256": "9822BF5EF4D81B724D549E969B06C87FBE4BFCC2258F17BDE755C62166D4A281",
+      "size": 25694677
     },
     "x86": {
-      "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.11/DeskBox_Setup_1.4.2.1_x86.exe",
-      "sha256": "48D0B566068A683C022B551ABBF26395A89F36DC72E60E74070F029B0EFE7DCA",
-      "size": 12343895
+      "downloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.12/DeskBox_Setup_1.4.2.1_x86.exe",
+      "sha256": "95FB22719386C24FE9999E4C3A4D2D4A0354D7A26D41DA68294C41D753500D49",
+      "size": 12341829
     }
   },
   "manualDownloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
   "mirrorUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/latest",
-  "sha256": "3A1B7BDC2EBB879BCCD7EE28939C2929A1CA1A27866E3CC8FC3BC0EC14297E75",
-  "size": 25724349,
+  "sha256": "661EFF48155C0CA9B8F4F272DD8981A6BF4BE8A899008A83139661123E64BC4E",
+  "size": 25722252,
   "minimumWindowsBuild": 19044,
-  "releaseNotesUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.11",
+  "releaseNotesUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.12",
   "summary": {
-    "vi-VN": "DeskBox 1.4.2.1-fork.11 đã sẵn sàng cập nhật.",
-    "en-US": "DeskBox 1.4.2.1-fork.11 is ready to update."
+    "vi-VN": "DeskBox 1.4.2.1-fork.12 đã sẵn sàng cập nhật.",
+    "en-US": "DeskBox 1.4.2.1-fork.12 is ready to update."
   },
   "releaseNotes": {
-    "vi-VN": "Hoàn thiện bản dịch tiếng Việt toàn bộ giao diện bằng Gemini Flash; sửa tài liệu và giữ nguyên các tính năng Fork 10.",
-    "en-US": "Completes the Vietnamese translation for the full GUI using Gemini Flash while preserving Fork 10 features."
+    "vi-VN": "Đơn giản hoá chụp ảnh: cửa sổ bị che dùng WGC/fallback riêng; Desktop, toàn màn hình và vùng chọn dùng snapshot GDI tách biệt để tránh nhận nhầm lớp phủ.",
+    "en-US": "Simplifies screenshot capture: isolated WGC/fallback for covered windows, with separate frozen-GDI paths for desktop, full screen, and free regions."
   },
-  "arm64DownloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.11/DeskBox_Setup_1.4.2.1_arm64.exe",
-  "arm64Sha256": "A73B1F924C361D3DC396E69CC4F1F57D666D5CBF78D78FB342216ACB2954E216",
-  "arm64Size": 25681033
+  "arm64DownloadUrl": "https://github.com/bbkien2312/DeskBox-mrKBB/releases/download/v1.4.2.1-fork.12/DeskBox_Setup_1.4.2.1_arm64.exe",
+  "arm64Sha256": "9822BF5EF4D81B724D549E969B06C87FBE4BFCC2258F17BDE755C62166D4A281",
+  "arm64Size": 25694677
 }
