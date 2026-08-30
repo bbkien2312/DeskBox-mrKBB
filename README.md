@@ -1,6 +1,6 @@
 # DeskBox
 
-> Ghi chú fork (29/08/2026): Fork 10 đang kiểm thử local, sửa snapshot Desktop/toàn màn hình bị đen và bổ sung x86. Bản đã phát hành online vẫn là `1.4.2.1-fork.9`; chi tiết triển khai và kiểm thử được ghi bằng tiếng Việt trong `AGENTS.md`.
+> Ghi chú fork (30/08/2026): Fork 12 đã phát hành, tách riêng chụp cửa sổ bị che, Desktop, toàn màn hình và vùng kéo. Chi tiết triển khai và kiểm thử được ghi bằng tiếng Việt trong `AGENTS.md`.
 
 **A free, open-source Windows desktop organizer with native-feeling WinUI 3 widgets.**
 
@@ -30,7 +30,7 @@ Fork duy trì tại <https://github.com/bbkien2312/DeskBox-mrKBB> bổ sung các
 - Sau khi vùng chụp đã khóa, nhấn `Ctrl+C` hoặc nút **Sao chép (Ctrl+C)** để đưa ảnh vào Clipboard Windows. Không có hotkey chụp toàn cục mới và không tạo thêm cache ảnh trong RAM.
 - Mọi bản fork phát hành phải tăng riêng `forkBuildNumber`, upload installer/checksum lên GitHub Release và cập nhật `release/stable.json`; không dùng số phiên bản upstream để quyết định update.
 
-Bản phát hành hiện hành là [1.4.2.1-fork.11](https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.11). Fork 12 đang kiểm thử riêng luồng chụp màn hình trước khi phát hành; setup tự tải dependency đúng kiến trúc khi thiếu.
+Bản phát hành hiện hành là [1.4.2.1-fork.12](https://github.com/bbkien2312/DeskBox-mrKBB/releases/tag/v1.4.2.1-fork.12). Setup tự tải dependency đúng kiến trúc khi thiếu.
 
 ## Mica and Acrylic on the desktop
 
